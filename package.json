@@ -66,7 +66,7 @@
       ]
     }
   },
-  "author": "Lichtspiel contributors",
+  "author": "Nik Pottbecker",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nikpottbecker/lichtspiel.git"

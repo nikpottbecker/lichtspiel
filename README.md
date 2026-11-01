@@ -117,6 +117,10 @@ Der aktuelle Umfang umfasst weder DCP/KDM-Kinopakete noch Projektor- und Vorhang
 
 ## Lizenz und Grundlagen
 
-Der eigene Anwendungscode steht unter der **[MIT-Lizenz](LICENSE)**. mpv wird separat installiert und behält seine eigene Lizenz. Alle weiteren Hinweise findest du unter [Fremdsoftware und Lizenzen](THIRD_PARTY.md).
+**Copyright © 2026 Nik Pottbecker.** Der eigene Anwendungscode steht unter der **[MIT-Lizenz](LICENSE)**.
+
+Wer Kopien oder wesentliche Teile des Codes weitergibt, muss den Copyright-Hinweis mit **Nik Pottbecker** und den MIT-Lizenztext beibehalten. Die MIT-Lizenz verlangt keine zusätzliche sichtbare Nennung in der Benutzeroberfläche oder Werbung.
+
+mpv wird separat installiert und behält seine eigene Lizenz. Alle weiteren Hinweise findest du unter [Fremdsoftware und Lizenzen](THIRD_PARTY.md).
 
 Lichtspiel ist ein eigenständiges Projekt. Es übernimmt keinen Quellcode aus QLab, PreShow Experience oder CasparCG.
