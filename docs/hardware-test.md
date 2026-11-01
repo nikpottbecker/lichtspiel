@@ -25,6 +25,7 @@ Trage für jeden Schritt **Bestanden**, **Fehlgeschlagen** oder **Nicht zutreffe
 | ----------------------------------------------------------------------------------- | ----- | ------- | ----------- |
 | App aus dem Paket starten und mpv erkennen                                          |       |         |             |
 | Beamer als erweiterten Bildschirm wählen; Bild landet dort                          |       |         |             |
+| Testkarte über mpv ausgeben: Rahmen, Ecken, Kreis, Linien und Farben prüfen         |       |         |             |
 | Ton über das gewählte HDMI-Gerät oder Audiointerface ausgeben                       |       |         |             |
 | Werbung → Trailer → Film ohne Eingriff abspielen                                    |       |         |             |
 | Mehrere Clips unterschiedlicher Auflösung und Bildrate abspielen                    |       |         |             |

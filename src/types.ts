@@ -73,6 +73,7 @@ export interface CinemaAPI {
   getEnvironment(): Promise<Environment>;
   chooseMpv(): Promise<Environment>;
   getAudioDevices(): Promise<{ id: string; label: string }[]>;
+  testProjection(displayId: string): Promise<void>;
   importMedia(): Promise<Media[]>;
   checkShow(options: ShowOptions): Promise<Readiness>;
   startShow(options: ShowOptions): Promise<void>;

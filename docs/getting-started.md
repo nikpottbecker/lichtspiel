@@ -35,7 +35,9 @@ Für die erste Installation werden Pakete heruntergeladen. Die lokale Wiedergabe
 4. Den Beamer als Wiedergabebildschirm auswählen. Nach dem Anschließen eines neuen Geräts **Neu erkennen** verwenden.
 5. Die gewünschte Tonausgabe auswählen und den Assistenten abschließen.
 
-Prüfe zunächst mit einem kurzen Clip, ob das Bild wirklich am gewünschten Bildschirm und der Ton am richtigen HDMI-Gerät oder Audiointerface ankommt. Die Bildschirmreihenfolge von Betriebssystem und Player kann sich je nach Aufbau unterscheiden.
+Klicke nach der Bildschirmauswahl auf **Testkarte zeigen**. Die Desktop-App zeigt sie 12 Sekunden lang über denselben mpv-Ausgabeweg wie den Film. Prüfe direkt am Beamer den äußeren Rahmen, alle vier Ecken, Kreisform, Schärfelinien und Farbbalken. Die Bildschirmreihenfolge von Betriebssystem und Player kann sich je nach Aufbau unterscheiden; die Testkarte macht eine falsche Zuordnung sichtbar.
+
+Spiele danach einen kurzen Clip ab und prüfe Bildbewegung sowie Ton am richtigen HDMI-Gerät oder Audiointerface. Die Testkarte ist stumm und beweist weder die Qualität eines Filmcodecs noch die Audioausgabe.
 
 ![Einrichtungsassistent in der Browser-Vorschau](assets/onboarding.png)
 

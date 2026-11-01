@@ -112,12 +112,42 @@ async function audioDevices(binary) {
   return devices.length ? devices : [{ id: 'auto', label: 'Systemstandard' }];
 }
 
+function displayArgs(screenIndex) {
+  if (!Number.isInteger(screenIndex) || screenIndex < 0)
+    throw new Error('Ungültiger Ausgabebildschirm.');
+  return [`--screen=${screenIndex}`, `--fs-screen=${screenIndex}`];
+}
+
+async function testProjection(binary, screenIndex, imagePath) {
+  if (!(await validMpv(binary)))
+    throw new Error('mpv fehlt. Wähle den Player in der Einrichtung aus.');
+  await run(
+    binary,
+    [
+      '--no-config',
+      '--fullscreen=yes',
+      ...displayArgs(screenIndex),
+      '--image-display-duration=12',
+      '--no-audio',
+      '--no-osc',
+      '--osd-level=0',
+      '--no-input-terminal',
+      '--title=Lichtspiel – Ausgabetest',
+      '--',
+      imagePath,
+    ],
+    17000,
+  );
+}
+
 async function preflight(items) {
   if (!Array.isArray(items) || !items.length || items.length > 1000)
     throw new Error('Füge zuerst Medien zum Ablauf hinzu (maximal 1000).');
   for (const item of items) {
     if (!item || typeof item.path !== 'string' || !path.isAbsolute(item.path))
       throw new Error('Der Ablauf enthält eine ungültige Datei. Bitte erneut importieren.');
+    if (!Number.isFinite(item.duration) || item.duration <= 0)
+      throw new Error(`Ungültige Laufzeit: ${path.basename(item.path)}. Bitte neu importieren.`);
     try {
       const info = await fs.stat(item.path);
       if (!info.isFile() || !info.size) throw new Error();
@@ -165,8 +195,7 @@ class MpvPlayer extends EventEmitter {
         '--force-window=yes',
         '--keep-open=no',
         '--fullscreen=yes',
-        `--screen=${screenIndex}`,
-        `--fs-screen=${screenIndex}`,
+        ...displayArgs(screenIndex),
         '--no-osc',
         '--osd-level=0',
         '--input-default-bindings=no',
@@ -371,6 +400,8 @@ module.exports = {
   findMpv,
   probeDuration,
   audioDevices,
+  displayArgs,
+  testProjection,
   preflight,
   MpvPlayer,
 };

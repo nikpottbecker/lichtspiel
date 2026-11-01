@@ -150,6 +150,9 @@ export const browserAPI: CinemaAPI = {
   async getAudioDevices() {
     return [{ id: 'auto', label: 'Standardausgabe des Browsers' }];
   },
+  async testProjection() {
+    throw new Error('Der Ausgabetest ist nur in der Desktop-App verfügbar.');
+  },
   importMedia() {
     return new Promise((resolve, reject) => {
       const input = document.createElement('input');

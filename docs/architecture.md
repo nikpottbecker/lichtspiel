@@ -4,6 +4,8 @@
 
 Lichtspiel besteht aus einer React-Oberfläche, einer Electron-Desktop-Hülle und einem separat installierten mpv-Prozess. Diese Aufteilung hält Vorführplanung und Bedienung unabhängig von Videodekodierung und Bildausgabe.
 
+Die installierte App benötigt keinen Webserver und keine Browser-Registerkarte. Ihre Bedienoberfläche nutzt aber technisch Electrons Chromium-Renderer; sie ist derzeit keine native SwiftUI- oder WinUI-Oberfläche. Die Leinwandwiedergabe findet außerhalb dieses Renderers im lokalen mpv-Prozess statt. Der Ausgabetest verwendet denselben Player und dieselbe Bildschirmauswahl wie eine Vorstellung.
+
 ```text
 Bedienoberfläche auf dem Computer
        │ geprüfte Desktop-Aufrufe

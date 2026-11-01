@@ -10,7 +10,7 @@ Lichtspiel soll einen vorbereiteten Filmabend auf macOS und Windows sicher und a
 2. **Während der Vorstellung:** Aktueller und nächster Clip, Fortschritt und Ausgabestatus sind auf einen Blick lesbar. Pause, Fortsetzen, nächster Clip, Stopp und Schwarzbild verhalten sich vorhersehbar. Fehler nennen eine konkrete nächste Handlung.
 3. **Organisation:** Mehrere Vorstellungen und wiederverwendbare Abläufe lassen sich verwalten, ohne Medien unbemerkt zu verschieben oder zu duplizieren. Import und Export erhalten die Reihenfolge und erklären fehlende Dateien.
 4. **Gestaltung:** Eine konsistente Schrift-, Farb-, Abstands- und Komponentenstruktur gilt für Einrichtung, Mediathek, Regie und Lichtsteuerung. Tastaturbedienung, Fokus, Kontrast und kleinere Fenster werden geprüft.
-5. **Desktop-Qualität:** Builds für macOS und Windows sind reproduzierbar. Beamerwechsel, Bild und Ton, längere Filme und Home Assistant werden auf echten Geräten getestet. Installationspakete erscheinen erst mit dokumentiertem Teststand.
+5. **Desktop-Qualität:** Lichtspiel läuft lokal und offline ohne Browserfenster oder Server. Die Leinwand wird von einem eigenen mpv-Prozess ausgegeben. Builds für macOS und Windows sind reproduzierbar. Beamerwechsel, Bild und Ton, längere Filme und Home Assistant werden auf echten Geräten getestet. Installationspakete erscheinen erst mit dokumentiertem Teststand.
 
 ## Aktuelle Etappen
 

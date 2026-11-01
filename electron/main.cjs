@@ -21,6 +21,7 @@ const {
   probeDuration,
   audioDevices,
   preflight,
+  testProjection,
 } = require('./mpv.cjs');
 const { ShowScheduler } = require('./scheduler.cjs');
 const { LightingController } = require('./lighting.cjs');
@@ -39,10 +40,20 @@ let sleepBlocker;
 let lighting;
 const mediaTokens = new Map();
 let saveQueue = Promise.resolve();
+let projectionTestInProgress = false;
 const player = new MpvPlayer();
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 const projectFile = () => path.join(app.getPath('userData'), 'project.json');
-const isBusy = () => player.active();
+const isBusy = () => player.active() || projectionTestInProgress;
+
+function selectedScreenIndex(displayId) {
+  const index = screen.getAllDisplays().findIndex((display) => String(display.id) === displayId);
+  if (index < 0)
+    throw new Error(
+      'Der gewählte Bildschirm ist nicht mehr verbunden. Bitte in der Einrichtung neu auswählen.',
+    );
+  return index;
+}
 
 function displays() {
   const primary = screen.getPrimaryDisplay().id;
@@ -97,16 +108,12 @@ function hydrateMedia(value) {
 }
 
 async function startShow(show) {
+  if (projectionTestInProgress) throw new Error('Der Ausgabetest läuft noch. Bitte kurz warten.');
   if (!show || typeof show.displayId !== 'string')
     throw new Error('Wähle zuerst den Bildschirm für die Ausgabe.');
   // Electron and mpv expose different display APIs. Both normally enumerate physical
   // displays in OS order; verify the selected output with a test clip on real hardware.
-  const all = screen.getAllDisplays();
-  const screenIndex = all.findIndex((display) => String(display.id) === show.displayId);
-  if (screenIndex < 0)
-    throw new Error(
-      'Der gewählte Bildschirm ist nicht mehr verbunden. Bitte in der Einrichtung neu auswählen.',
-    );
+  const screenIndex = selectedScreenIndex(show.displayId);
   const audioDevice =
     typeof show.audioDevice === 'string' && show.audioDevice.length < 1024
       ? show.audioDevice
@@ -126,7 +133,7 @@ const scheduler = new ShowScheduler({
 });
 
 function syncSleepBlocker() {
-  const needed = player.active() || !!scheduler.pending;
+  const needed = isBusy() || !!scheduler.pending;
   if (needed && (sleepBlocker === undefined || !powerSaveBlocker.isStarted(sleepBlocker)))
     sleepBlocker = powerSaveBlocker.start('prevent-display-sleep');
   if (!needed && sleepBlocker !== undefined) {
@@ -212,6 +219,25 @@ function registerHandlers() {
     return imported;
   });
   handle('audio-devices', () => audioDevices(mpvPath));
+  handle('test-projection', async (displayId) => {
+    if (typeof displayId !== 'string' || !displayId)
+      throw new Error('Wähle zuerst einen Ausgabebildschirm.');
+    if (isBusy() || scheduler.pending)
+      throw new Error('Während einer Vorstellung oder Startplanung nicht verfügbar.');
+    const screenIndex = selectedScreenIndex(displayId);
+    projectionTestInProgress = true;
+    syncSleepBlocker();
+    try {
+      await testProjection(
+        mpvPath,
+        screenIndex,
+        path.join(__dirname, 'assets', 'projection-test.png'),
+      );
+    } finally {
+      projectionTestInProgress = false;
+      syncSleepBlocker();
+    }
+  });
   handle('preflight', (show) => checkShowReadiness(show, { displayList: displays(), mpvPath }));
   handle('start', startShow);
   handle('pause', () => player.pause());
@@ -237,6 +263,8 @@ function registerHandlers() {
   });
   handle('schedule', async (show) => {
     if (show !== null) {
+      if (projectionTestInProgress)
+        throw new Error('Der Ausgabetest läuft noch. Bitte kurz warten.');
       await preflight(show?.items);
       if (!mpvPath) throw new Error('Bitte zuerst mpv in der Einrichtung auswählen.');
       if (!displays().some((display) => display.id === show.displayId))

@@ -47,13 +47,13 @@ Während der Vorstellung zeigt die Regieansicht den laufenden Clip, seine Restze
 
 ## Alles für den Ablauf
 
-| Vorbereiten                                                                                             | Vorführen                                                                                                     |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Geführte Einrichtung** — Player, Bildschirm und Tonausgabe auswählen.                                 | **Getrennte Ausgabe** — Bedienung am Rechner, Video über mpv auf dem gewählten Bildschirm.                    |
-| **Mediathek** — lokale Dateien importieren, suchen und als Werbung, Trailer, Intro oder Film einordnen. | **Direkte Kontrolle** — starten, pausieren, fortsetzen, zum nächsten Clip wechseln oder Schwarzbild schalten. |
-| **Ablaufeditor** — Clips per Drag-and-drop oder Pfeilbuttons ordnen, Laufzeiten und Reihenfolge prüfen. | **Geplanter Beginn** — die Vorstellung einmalig zu einer festgelegten Uhrzeit starten.                        |
-| **Lokales Speichern** — den Ablauf beim nächsten Öffnen wiederfinden.                                   | **Lichtregeln** — Helligkeit und Dimmzeit passend zu Vorprogramm, Film, Pause und Ende einstellen.            |
-| **Startprüfung** — fehlende Medien, Player und Ausgabegeräte vor dem Beginn erkennen.                   | **Live-Ansicht** — aktuellen und nächsten Clip samt Restzeit im Blick behalten.                               |
+| Vorbereiten                                                                                                | Vorführen                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Geführte Einrichtung** — Player, Bildschirm und Tonausgabe auswählen; Testkarte direkt am Beamer prüfen. | **Getrennte Ausgabe** — Bedienung am Rechner, Video über mpv auf dem gewählten Bildschirm.                    |
+| **Mediathek** — lokale Dateien importieren, suchen und als Werbung, Trailer, Intro oder Film einordnen.    | **Direkte Kontrolle** — starten, pausieren, fortsetzen, zum nächsten Clip wechseln oder Schwarzbild schalten. |
+| **Ablaufeditor** — Clips per Drag-and-drop oder Pfeilbuttons ordnen, Laufzeiten und Reihenfolge prüfen.    | **Geplanter Beginn** — die Vorstellung einmalig zu einer festgelegten Uhrzeit starten.                        |
+| **Lokales Speichern** — den Ablauf beim nächsten Öffnen wiederfinden.                                      | **Lichtregeln** — Helligkeit und Dimmzeit passend zu Vorprogramm, Film, Pause und Ende einstellen.            |
+| **Startprüfung** — fehlende Medien, Player und Ausgabegeräte vor dem Beginn erkennen.                      | **Live-Ansicht** — aktuellen und nächsten Clip samt Restzeit im Blick behalten.                               |
 
 Ein geplanter Start setzt eine geöffnete App und einen laufenden Rechner voraus. Schwarzbild pausiert Bild und Ton. Die Regieansicht prüft Medien, Player und Ausgabe; die Desktop-App prüft die Dateien beim tatsächlichen Start erneut.
 

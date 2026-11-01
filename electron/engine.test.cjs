@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
-const { JsonLines, preflight } = require('./mpv.cjs');
+const { JsonLines, displayArgs, preflight } = require('./mpv.cjs');
 const { ShowScheduler } = require('./scheduler.cjs');
 
 test('JSON IPC handles split messages, multiple messages and non-JSON diagnostics', () => {
@@ -15,6 +15,11 @@ test('JSON IPC handles split messages, multiple messages and non-JSON diagnostic
     { event: 'property-change', data: 12 },
     { request_id: 3, error: 'success' },
   ]);
+});
+
+test('projection test and playback use the same display selection', () => {
+  assert.deepEqual(displayArgs(2), ['--screen=2', '--fs-screen=2']);
+  assert.throws(() => displayArgs(-1), /Ausgabebildschirm/);
 });
 
 test('scheduler fires once at the chosen time', async () => {
@@ -76,9 +81,16 @@ test('preflight rejects missing files and accepts an existing nonempty local fil
   try {
     const filename = path.join(directory, 'sample.mp4');
     await fs.writeFile(filename, 'test');
-    await preflight([{ path: filename }]);
-    await assert.rejects(() => preflight([{ path: path.join(directory, 'missing.mp4') }]), /fehlt/);
-    await assert.rejects(() => preflight([{ path: 'https://example.com/video.mp4' }]), /ungültige/);
+    await preflight([{ path: filename, duration: 120 }]);
+    await assert.rejects(
+      () => preflight([{ path: path.join(directory, 'missing.mp4'), duration: 120 }]),
+      /fehlt/,
+    );
+    await assert.rejects(
+      () => preflight([{ path: 'https://example.com/video.mp4', duration: 120 }]),
+      /ungültige/,
+    );
+    await assert.rejects(() => preflight([{ path: filename, duration: 0 }]), /Laufzeit/);
     await assert.rejects(() => preflight([]), /Medien/);
   } finally {
     await fs.rm(directory, { recursive: true });

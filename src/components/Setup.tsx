@@ -35,6 +35,7 @@ export default function Setup({
   const [step, setStep] = useState(project.onboarded ? 1 : 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [projectionNotice, setProjectionNotice] = useState('');
   const [audioDevices, setAudioDevices] = useState<{ id: string; label: string }[]>([]);
   const selectedDisplay = environment.displays.find((display) => display.id === project.displayId);
   const ready = !environment.desktop || (environment.mpvAvailable && !!selectedDisplay);
@@ -210,6 +211,39 @@ export default function Setup({
                 {selectedDisplay.primary && environment.desktop
                   ? ' · Die Ausgabe liegt auf deinem Hauptbildschirm.'
                   : ''}
+              </p>
+            )}
+            {environment.desktop && selectedDisplay && environment.mpvAvailable && (
+              <div className="projection-test">
+                <div>
+                  <strong>Leinwand prüfen</strong>
+                  <p>
+                    Zeigt 12 Sekunden lang eine Testkarte über den echten Player. Prüfe, ob sie
+                    vollständig und scharf auf dem gewählten Beamer erscheint.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      setProjectionNotice('');
+                      await window.cinema?.testProjection(project.displayId);
+                      setProjectionNotice(
+                        'Test beendet. Bestätige am Beamer selbst, ob Bild und Rand richtig waren.',
+                      );
+                    })
+                  }
+                >
+                  <Monitor size={16} aria-hidden="true" />
+                  {busy ? 'Ausgabe läuft …' : 'Testkarte zeigen'}
+                </button>
+              </div>
+            )}
+            {projectionNotice && (
+              <p className="setup-help" role="status">
+                {projectionNotice}
               </p>
             )}
             {environment.desktop && (
