@@ -1,0 +1,22 @@
+name: Verbesserung vorschlagen
+description: Erzähle, was deinen Filmabend einfacher machen würde.
+title: '[Idee] '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Was möchtest du erreichen?
+      description: Beschreibe den Ablauf oder das Problem in deinem Kinoaufbau.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Dein Vorschlag
+      description: Wie könnte Lichtspiel dir dabei helfen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Bisherige Lösung oder Alternativen

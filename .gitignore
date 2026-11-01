@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+test-results/
+playwright-report/
+.DS_Store
+*.tsbuildinfo
+
+# Local design iterations and development-only files
+/design/
+*.log
+.env
+.env.*
+!.env.example

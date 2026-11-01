@@ -1,0 +1,41 @@
+name: Fehler melden
+description: Beschreibe, was bei deiner Vorstellung nicht funktioniert.
+title: '[Fehler] '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass du Lichtspiel ausprobierst. Bitte keine Home-Assistant-Tokens,
+        Zugangsdaten oder privaten Mediendateien anhängen.
+  - type: input
+    id: version
+    attributes:
+      label: Lichtspiel-Version oder Commit
+      placeholder: z. B. 0.1.0 oder Commit-SHA
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Betriebssystem und Wiedergabe
+      placeholder: z. B. macOS 15 / mpv 0.40 oder Windows 11 / Chrome-Vorschau
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      description: Was hast du ausgewählt, importiert oder gestartet?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes und tatsächliches Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Zusätzliche Details
+      description: Fehlermeldung, Screenshot, Beamer-/Audiomodell oder Codec – soweit relevant.
