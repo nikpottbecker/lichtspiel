@@ -40,6 +40,7 @@ Trage für jeden Schritt **Bestanden**, **Fehlgeschlagen** oder **Nicht zutreffe
 | Startzeit für eine spätere Uhrzeit setzen und genau einmal ausführen                |       |         |             |
 | Verpassten geplanten Start nach Schlaf oder Neustart verständlich melden            |       |         |             |
 | App während einer Vorstellung schließen und wieder öffnen: Zustand ist verständlich |       |         |             |
+| Player während der Qt-Vorstellung beenden: Regie zeigt einen Fehler                 |       |         |             |
 
 ## Optional: Lichtsteuerung
 

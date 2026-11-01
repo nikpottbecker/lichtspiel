@@ -72,6 +72,20 @@ class MpvIpcTests(unittest.TestCase):
             self.wait_until(lambda: player.process.state() == QProcess.NotRunning)
             self.assertEqual(player.state["status"], "idle")
 
+    def test_watchdog_reports_unresponsive_player(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            binary = Path(temporary) / "fake-mpv"
+            binary.write_text(FAKE_MPV, encoding="utf-8")
+            binary.chmod(0o755)
+            player = MpvPlayer()
+            player.start(str(binary), [{"path": "/tmp/first.mp4", "duration": 30}], 0)
+            self.wait_until(lambda: player.state["status"] == "playing")
+            player.last_reply = time.monotonic() - 13
+            player._watchdog_tick()
+            self.assertEqual(player.state["status"], "error")
+            self.assertIn("antwortet", player.state["message"])
+            self.wait_until(lambda: player.process.state() == QProcess.NotRunning)
+
 
 if __name__ == "__main__":
     unittest.main()

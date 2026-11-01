@@ -24,6 +24,7 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Projektdatei, Mediathek, Kategorien und geordneter Ablauf | Vorhandene Electron-Projektdatei wird gelesen und weiterverwendet                              |
 | mpv-Wiedergabe                                            | Separater Prozess mit asynchroner IPC; Pause, Fortsetzen, Schwarzbild, nächster Clip und Stopp |
+| Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                        |
 | Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                            |
 | Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                  |
 | Home Assistant                                            | Regeln, Verbindungstest und Live-Test; Token im System-Schlüsselbund                           |

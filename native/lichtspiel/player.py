@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -128,13 +129,21 @@ class MpvPlayer(QObject):
         self.process.setProcessChannelMode(QProcess.SeparateChannels)
         self.process.errorOccurred.connect(self._process_error)
         self.process.finished.connect(self._finished)
+        self.process.readyReadStandardError.connect(self._drain_stderr)
+        self.process.readyReadStandardOutput.connect(self._drain_stdout)
         self.socket = QLocalSocket(self)
         self.socket.readyRead.connect(self._read_socket)
         self.socket.errorOccurred.connect(self._socket_error)
         self.connect_timer = QTimer(self)
         self.connect_timer.setInterval(100)
         self.connect_timer.timeout.connect(self._try_connect)
+        self.watchdog = QTimer(self)
+        self.watchdog.setInterval(3000)
+        self.watchdog.timeout.connect(self._watchdog_tick)
         self.connect_attempts = 0
+        self.last_reply = 0.0
+        self.heartbeat_serial = 1000
+        self.stderr_tail = b""
         self.buffer = b""
         self.items: list[dict] = []
         self.endpoint = ""
@@ -148,10 +157,13 @@ class MpvPlayer(QObject):
     def active(self) -> bool:
         return self.state["status"] in ("starting", "playing", "paused", "blackout")
 
-    def _command(self, command: list) -> None:
+    def _command(self, command: list, request_id: int | None = None) -> None:
         if self.socket.state() != QLocalSocket.ConnectedState:
             raise RuntimeError("Player ist nicht verbunden.")
-        self.socket.write((json.dumps({"command": command}) + "\n").encode())
+        message = {"command": command}
+        if request_id is not None:
+            message["request_id"] = request_id
+        self.socket.write((json.dumps(message) + "\n").encode())
 
     def start(
         self,
@@ -169,6 +181,7 @@ class MpvPlayer(QObject):
         self.items = [dict(item) for item in items]
         self.intentional_stop = False
         self.buffer = b""
+        self.stderr_tail = b""
         self.endpoint = (
             rf"\\.\pipe\lichtspiel-{uuid.uuid4()}"
             if sys.platform == "win32"
@@ -211,6 +224,8 @@ class MpvPlayer(QObject):
             self._command(["observe_property", 1, "time-pos"])
             self._command(["observe_property", 2, "duration"])
             self._command(["loadfile", self.items[0]["path"], "replace"])
+            self.last_reply = time.monotonic()
+            self.watchdog.start()
             self._update(status="playing")
             return
         if self.process.state() == QProcess.NotRunning and self.connect_attempts > 1:
@@ -236,6 +251,11 @@ class MpvPlayer(QObject):
                 message = json.loads(line)
             except (ValueError, UnicodeDecodeError):
                 continue
+            if (
+                isinstance(message.get("request_id"), int)
+                and message["request_id"] >= 1000
+            ):
+                self.last_reply = time.monotonic()
             if message.get("event") == "property-change" and isinstance(
                 message.get("data"), (int, float)
             ):
@@ -269,6 +289,28 @@ class MpvPlayer(QObject):
     def _finished(self, _code, _status):
         if not self.intentional_stop and self.active():
             self.fail("Der Player wurde beendet. Prüfe mpv und die Ausgabe.")
+
+    def _drain_stderr(self):
+        self.stderr_tail = (
+            self.stderr_tail + bytes(self.process.readAllStandardError())
+        )[-4096:]
+
+    def _drain_stdout(self):
+        self.process.readAllStandardOutput()
+
+    def _watchdog_tick(self):
+        if not self.active() or self.state["status"] == "starting":
+            return
+        if time.monotonic() - self.last_reply > 12:
+            self.fail(
+                "Der Player antwortet seit 12 Sekunden nicht. Prüfe mpv und die Ausgabedatei."
+            )
+            return
+        self.heartbeat_serial += 1
+        try:
+            self._command(["get_property", "time-pos"], self.heartbeat_serial)
+        except RuntimeError:
+            self.fail("Der Player ist nicht mehr verbunden.")
 
     def pause(self):
         if self.state["status"] == "playing":
@@ -310,6 +352,7 @@ class MpvPlayer(QObject):
     def stop(self, reason: str = "user"):
         self.intentional_stop = True
         self.connect_timer.stop()
+        self.watchdog.stop()
         if self.socket.state() == QLocalSocket.ConnectedState:
             try:
                 self._command(["quit"])
