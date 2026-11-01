@@ -17,6 +17,8 @@ Lichtspiel soll einen vorbereiteten Filmabend auf macOS und Windows sicher und a
 - [x] Grundlegender Ablauf mit mpv, Browser-Vorschau, Startplanung und Home Assistant.
 - [x] Ruhigere Regieansicht mit gesondertem Fokus während der Wiedergabe.
 - [x] Sichtbare Startprüfung für Medien, Player und Ausgabe.
+- [x] Erste native Qt-Regie ohne Chromium mit eigenem mpv-Prozess und fest sichtbaren Vorführtasten.
+- [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [ ] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
 - [ ] Wiederherstellung und Vorführprotokoll bei Unterbrechungen.
 - [ ] Mehrere gespeicherte Vorstellungen und wiederverwendbare Vorlagen.

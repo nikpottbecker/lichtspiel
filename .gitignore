@@ -5,6 +5,10 @@ test-results/
 playwright-report/
 .DS_Store
 *.tsbuildinfo
+.venv-native/
+__pycache__/
+*.py[cod]
+/build/
 
 # Local design iterations and development-only files
 /design/

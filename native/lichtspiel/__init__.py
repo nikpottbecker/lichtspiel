@@ -1,0 +1,1 @@
+"""Native Lichtspiel desktop application."""

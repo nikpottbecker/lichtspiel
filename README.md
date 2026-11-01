@@ -34,6 +34,13 @@ Für Heimkinos, Vereine und eigene Filmprojekte. Lokal auf deinem Rechner, ohne 
 > [!NOTE]
 > **Version 0.1.0 ist eine Entwicklungsvorschau aus dem Quellcode.** Signierte Installationspakete sind noch nicht veröffentlicht. Beamer, Audio und reale Lampen müssen am jeweiligen Mac- oder Windows-Aufbau geprüft werden.
 
+**Native Desktop-Vorschau:** Der Umbau auf eine Oberfläche aus Qt Widgets läuft. Sie verwendet keinen Chromium-Renderer; mpv bleibt der getrennte Player für die Leinwand. [Start, Funktionen und Grenzen der Qt-Version →](native/README.md)
+
+<p align="center">
+  <img src="docs/assets/native-control.png" alt="Qt-Vorschau der nativen Lichtspiel-Regie mit Ablauf und fest sichtbaren Vorführtasten" width="100%">
+</p>
+<p align="center"><sub>Qt-Regie als Entwicklungsvorschau, unter Linux mit Beispieldaten aufgenommen. Die bisherige Electron-Version bleibt während der Geräteprüfung verfügbar.</sub></p>
+
 <p align="center">
   <img src="docs/assets/show-control.png" alt="Lichtspiels Regieansicht mit Ablaufliste, Dateidetails, Ausgabestatus und Wiedergabesteuerung" width="100%">
 </p>
@@ -106,7 +113,7 @@ Die Automatik ist anfangs ausgeschaltet. Verbindungstest und Vorschau verändern
 
 ## Ein klarer erster Stand
 
-Lichtspiel verwendet **React + TypeScript** für die Oberfläche, **Electron** für den Desktop und **mpv** als separaten Wiedergabeprozess. Die Architektur bleibt klein genug, um sie selbst zu verstehen und zu erweitern.
+Die bisherige Desktop-Version verwendet **React + TypeScript** und **Electron**. Die neue [native Qt-Version](native/README.md) ersetzt deren Oberfläche schrittweise. Beide verwenden **mpv** als separaten Wiedergabeprozess.
 
 Automatisierte Tests decken Ablaufplanung, Dateiprüfung, Player-Protokoll und Lichtregeln ab. Browser-Tests prüfen außerdem den Weg vom Import bis zur tatsächlichen Videoausgabe. Die mpv-Steuerung wurde unter Linux mit echten Testclips und Nullausgabe geprüft; das ersetzt keine Bild- und Tonprüfung auf macOS oder Windows.
 

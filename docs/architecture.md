@@ -2,9 +2,11 @@
 
 ## Ein Player, eine eigene Steuerung
 
-Lichtspiel besteht aus einer React-Oberfläche, einer Electron-Desktop-Hülle und einem separat installierten mpv-Prozess. Diese Aufteilung hält Vorführplanung und Bedienung unabhängig von Videodekodierung und Bildausgabe.
+Lichtspiel hat derzeit zwei Desktop-Oberflächen: Die bisherige React-/Electron-App und eine [native Qt-Vorschau](../native/README.md). Beide steuern einen separat installierten mpv-Prozess. Diese Aufteilung hält Vorführplanung und Bedienung unabhängig von Videodekodierung und Bildausgabe.
 
-Die installierte App benötigt keinen Webserver und keine Browser-Registerkarte. Ihre Bedienoberfläche nutzt aber technisch Electrons Chromium-Renderer; sie ist derzeit keine native SwiftUI- oder WinUI-Oberfläche. Die Leinwandwiedergabe findet außerhalb dieses Renderers im lokalen mpv-Prozess statt. Der Ausgabetest verwendet denselben Player und dieselbe Bildschirmauswahl wie eine Vorstellung.
+Die bisherige Electron-App benötigt keinen Webserver und keine Browser-Registerkarte. Ihre Bedienoberfläche nutzt aber technisch Electrons Chromium-Renderer. Die Leinwandwiedergabe findet außerhalb dieses Renderers im lokalen mpv-Prozess statt. Der Ausgabetest verwendet denselben Player und dieselbe Bildschirmauswahl wie eine Vorstellung.
+
+Die Qt-Version nutzt Qt Widgets ohne Chromium. Ihr eigener QProcess startet mpv, QLocalSocket steuert ihn ohne blockierende UI-Wartezeit. Import, Dateiprüfung, Player-Erkennung und Lichtnetzwerkzugriffe laufen in Hintergrund-Threads. Die Qt-Version liest dieselbe Projektdatei, speichert ihre Bildschirmauswahl aber getrennt, damit die Electron-Auswahl beim Testen erhalten bleibt.
 
 ```text
 Bedienoberfläche auf dem Computer

@@ -4,6 +4,8 @@
 
 Die automatischen Prüfungen und der Paketbau ersetzen keinen Test im Kinoraum. Dieses Protokoll ist für **jeden** macOS- und Windows-Aufbau auszufüllen, bevor Lichtspiel als vorführbereit bezeichnet wird. Verwende eigene kurze Testvideos ohne persönliche Daten. Die unsignierten Testpakete stehen als zeitlich begrenzte Artefakte im [Desktop-Build-Workflow](../.github/workflows/desktop-build.yml); mpv muss separat installiert werden.
 
+Für die [Qt-Vorschau](../native/README.md) gibt es einen eigenen [Paket-Workflow](../.github/workflows/native-desktop.yml). Trage im Protokoll ein, welche Oberfläche getestet wurde. Prüfe die Vorführtasten bei einem kleinen Fenster und bestätige, dass Import und Lichtnetzwerkfehler die Bedienung nicht blockieren.
+
 ## Aufbau erfassen
 
 | Angabe                                                    | Wert |
