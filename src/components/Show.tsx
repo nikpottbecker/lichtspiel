@@ -3,6 +3,8 @@ import {
   ArrowDown,
   ArrowUp,
   Clapperboard,
+  CircleAlert,
+  CircleCheck,
   Film,
   GripVertical,
   Megaphone,
@@ -10,12 +12,13 @@ import {
   Pause,
   Play,
   Plus,
+  RefreshCw,
   SkipForward,
   Square,
   Trash2,
   Video,
 } from 'lucide-react';
-import type { Category, Environment, Media, Playback, Project } from '../types';
+import type { Category, Environment, Media, Playback, Project, Readiness } from '../types';
 import { durationLabel } from '../lib/show.mjs';
 
 const icons = { Werbung: Megaphone, Trailer: Clapperboard, Film, Intro: Video };
@@ -35,6 +38,9 @@ interface Props {
   locked: boolean;
   busy: boolean;
   armed: boolean;
+  readiness: Readiness | null;
+  checking: boolean;
+  onCheck: () => void;
   onChange: (patch: Partial<Project>) => void;
   onImport: () => void;
   onMove: (from: number, to: number) => void;
@@ -346,9 +352,46 @@ export default function Show(p: Props) {
               </span>
             )}
           </div>
+          <div className="readiness-panel" aria-live="polite">
+            <div className="readiness-heading">
+              <div>
+                <span className="show-label">STARTPRÜFUNG</span>
+                <strong>
+                  {p.checking || !p.readiness
+                    ? 'Wird geprüft …'
+                    : p.readiness?.ready
+                      ? 'Bereit für den Start'
+                      : 'Prüfung erforderlich'}
+                </strong>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Startprüfung erneut ausführen"
+                title="Erneut prüfen"
+                onClick={p.onCheck}
+                disabled={p.checking}
+              >
+                <RefreshCw size={17} className={p.checking ? 'spinning' : ''} />
+              </button>
+            </div>
+            {p.readiness?.checks.map((check) => (
+              <div className="readiness-check" key={check.id}>
+                {check.ok ? (
+                  <CircleCheck size={17} className="readiness-ok" aria-hidden="true" />
+                ) : (
+                  <CircleAlert size={17} className="readiness-issue" aria-hidden="true" />
+                )}
+                <span>
+                  <strong>{check.label}</strong>
+                  <small>{check.message}</small>
+                </span>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
-      <section className="panel timeline-panel">
+      <section className="panel schedule-panel">
         <div className="section-heading">
           <h2>Zeitsteuerung</h2>
           <span>Einmaliger Start · App geöffnet lassen</span>
@@ -367,7 +410,9 @@ export default function Show(p: Props) {
               type="checkbox"
               role="switch"
               checked={p.armed}
-              disabled={!p.environment.desktop || active || p.busy}
+              disabled={
+                !p.environment.desktop || active || p.busy || (!p.readiness?.ready && !p.armed)
+              }
               onChange={(e) => p.onSchedule(e.target.checked)}
             />
             <span className="switch-track" />
@@ -422,7 +467,8 @@ export default function Show(p: Props) {
             <button
               className="button primary"
               onClick={p.onStart}
-              disabled={p.busy || p.armed || !p.items.length}
+              disabled={p.busy || p.armed || !p.readiness?.ready}
+              title={p.readiness?.checks.find((check) => !check.ok)?.message}
             >
               <Play size={20} fill="currentColor" />
               Vorstellung starten

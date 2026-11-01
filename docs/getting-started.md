@@ -45,11 +45,13 @@ Mit **Medien hinzufügen** importierst du lokale Videos. Sie erscheinen in der M
 
 In der Mediathek kannst du nach Dateinamen suchen und jeder Datei eine Kategorie geben: **Werbung**, **Trailer**, **Intro** oder **Film**. Die Kategorie beeinflusst auch die optionale Lichtautomation.
 
-Ordne die Clips im Bereich **Vorstellung** per Drag-and-drop oder über die Pfeile. Die Zeitachse zeigt ihre Reihenfolge und Gesamtlaufzeit. Derselbe Clip darf mehrfach vorkommen.
+Ordne die Clips im Bereich **Vorstellung** per Drag-and-drop oder über die Pfeile. Die Ablaufliste zeigt Reihenfolge, Laufzeiten und Gesamtdauer. Derselbe Clip darf mehrfach vorkommen.
 
 Änderungen werden automatisch lokal gespeichert. Die Desktop-App speichert Verweise auf die Originaldateien; verschiebe oder lösche diese Dateien nicht, solange du sie für deine Vorstellung brauchst.
 
 Der **Beispielablauf** zeigt nur die Bedienung. Er enthält keine abspielbaren Videos und muss durch eigene Dateien ersetzt werden.
+
+Die **Startprüfung** in der Regieansicht zeigt, ob Medien, Wiedergabe und Ausgabe bereit sind. Nutze **Erneut prüfen**, wenn du Dateien verschoben oder einen Beamer neu angeschlossen hast. Ein Problem in dieser Prüfung sperrt den Startknopf und nennt den nächsten Schritt.
 
 ## 4. Vorführen
 

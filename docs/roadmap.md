@@ -14,6 +14,7 @@ Lichtspiel beginnt als kleine lokale Kinoregie. Die nächste Ausbaustufe konzent
 - [x] Home-Assistant-Lichtregeln und getrennte Vorschau-/Testaktionen.
 - [x] Browser-Vorschau mit tatsächlicher lokaler Videowiedergabe.
 - [x] Automatisierte Prüfungen für Ablauf, Playerprotokoll und Lichtregeln.
+- [x] Sichtbare Startprüfung für Medien, mpv und gewählte Ausgabe.
 
 ## Nächster Schwerpunkt: verlässliche Vorführungen
 

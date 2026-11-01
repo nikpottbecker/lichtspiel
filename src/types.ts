@@ -45,6 +45,16 @@ export interface ShowOptions {
   displayId: string;
   audioDevice?: string;
 }
+export interface ReadinessCheck {
+  id: 'media' | 'player' | 'display';
+  label: string;
+  ok: boolean;
+  message: string;
+}
+export interface Readiness {
+  ready: boolean;
+  checks: ReadinessCheck[];
+}
 export type LightEvent = 'preshow' | 'feature' | 'pause' | 'end';
 export interface LightRule {
   enabled: boolean;
@@ -64,6 +74,7 @@ export interface CinemaAPI {
   chooseMpv(): Promise<Environment>;
   getAudioDevices(): Promise<{ id: string; label: string }[]>;
   importMedia(): Promise<Media[]>;
+  checkShow(options: ShowOptions): Promise<Readiness>;
   startShow(options: ShowOptions): Promise<void>;
   pauseShow(): Promise<void>;
   resumeShow(): Promise<void>;

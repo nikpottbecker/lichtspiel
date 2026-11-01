@@ -21,6 +21,7 @@
   <a href="docs/getting-started.md">Erste Vorstellung</a> ·
   <a href="docs/home-assistant.md">Lichtsteuerung</a> ·
   <a href="docs/roadmap.md">Roadmap</a> ·
+  <a href="GOAL.md">Projektziel</a> ·
   <a href="CONTRIBUTING.md">Mitmachen</a>
 </p>
 
@@ -52,8 +53,9 @@ Während der Vorstellung zeigt die Regieansicht den laufenden Clip, seine Restze
 | **Mediathek** — lokale Dateien importieren, suchen und als Werbung, Trailer, Intro oder Film einordnen. | **Direkte Kontrolle** — starten, pausieren, fortsetzen, zum nächsten Clip wechseln oder Schwarzbild schalten. |
 | **Ablaufeditor** — Clips per Drag-and-drop oder Pfeilbuttons ordnen, Laufzeiten und Reihenfolge prüfen. | **Geplanter Beginn** — die Vorstellung einmalig zu einer festgelegten Uhrzeit starten.                        |
 | **Lokales Speichern** — den Ablauf beim nächsten Öffnen wiederfinden.                                   | **Lichtregeln** — Helligkeit und Dimmzeit passend zu Vorprogramm, Film, Pause und Ende einstellen.            |
+| **Startprüfung** — fehlende Medien, Player und Ausgabegeräte vor dem Beginn erkennen.                   | **Live-Ansicht** — aktuellen und nächsten Clip samt Restzeit im Blick behalten.                               |
 
-Ein geplanter Start setzt eine geöffnete App und einen laufenden Rechner voraus. Schwarzbild pausiert Bild und Ton. Die Desktop-App prüft vor dem Start, ob die Dateien noch verfügbar sind.
+Ein geplanter Start setzt eine geöffnete App und einen laufenden Rechner voraus. Schwarzbild pausiert Bild und Ton. Die Regieansicht prüft Medien, Player und Ausgabe; die Desktop-App prüft die Dateien beim tatsächlichen Start erneut.
 
 ## Schnellstart
 

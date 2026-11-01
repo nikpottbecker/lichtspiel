@@ -24,6 +24,7 @@ const {
 } = require('./mpv.cjs');
 const { ShowScheduler } = require('./scheduler.cjs');
 const { LightingController } = require('./lighting.cjs');
+const { checkShowReadiness } = require('./readiness.cjs');
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -211,6 +212,7 @@ function registerHandlers() {
     return imported;
   });
   handle('audio-devices', () => audioDevices(mpvPath));
+  handle('preflight', (show) => checkShowReadiness(show, { displayList: displays(), mpvPath }));
   handle('start', startShow);
   handle('pause', () => player.pause());
   handle('resume', () => player.resume());

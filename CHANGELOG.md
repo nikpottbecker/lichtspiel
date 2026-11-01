@@ -17,6 +17,7 @@
 ### Überarbeitet
 
 - Die Regieansicht zeigt Medien als kompakte Ablaufliste mit Dateidetails und Ausgabestatus.
+- Eine sichtbare Startprüfung meldet fehlende Medien, mpv und nicht verbundene Ausgabegeräte vor der Vorstellung.
 - Während der Wiedergabe sind aktueller und nächster Clip samt Laufzeit direkt sichtbar.
 - Navigation, Mediathek, Einrichtung und Lichtsteuerung nutzen eine einheitlichere, ruhigere Gestaltung.
 

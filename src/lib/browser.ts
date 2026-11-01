@@ -169,6 +169,40 @@ export const browserAPI: CinemaAPI = {
       input.click();
     });
   },
+  async checkShow(options: ShowOptions) {
+    const items = Array.isArray(options?.items) ? options.items : [];
+    const mediaIssue = !items.length
+      ? 'Füge zuerst Medien zum Ablauf hinzu'
+      : items.some((item) => item.demo)
+        ? 'Beispiele durch eigene Videos ersetzen'
+        : items.some((item) => !item.url || !Number.isFinite(item.duration) || item.duration <= 0)
+          ? 'Eine Videodatei fehlt oder ist nicht lesbar; bitte erneut importieren'
+          : '';
+    const checks = [
+      {
+        id: 'media' as const,
+        label: 'Medien',
+        ok: !mediaIssue,
+        message: mediaIssue || `${items.length} Medien importiert`,
+      },
+      {
+        id: 'player' as const,
+        label: 'Browser',
+        ok: true,
+        message: 'Wiedergabe im Ausgabefenster beim Start freigeben',
+      },
+      {
+        id: 'display' as const,
+        label: 'Ausgabe',
+        ok: options?.displayId === 'browser',
+        message:
+          options?.displayId === 'browser'
+            ? 'Separates Browserfenster ausgewählt'
+            : 'Ausgabefenster auswählen',
+      },
+    ];
+    return { ready: checks.every((check) => check.ok), checks };
+  },
   async startShow(options: ShowOptions) {
     // Open synchronously inside the click gesture so browsers can allow the output.
     if (!output || output.closed)

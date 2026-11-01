@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('cinema', {
   getEnvironment: () => ipcRenderer.invoke('cinema:environment'),
   chooseMpv: () => ipcRenderer.invoke('cinema:choose-mpv'),
   importMedia: () => ipcRenderer.invoke('cinema:import'),
+  checkShow: (show) => ipcRenderer.invoke('cinema:preflight', show),
   getAudioDevices: () => ipcRenderer.invoke('cinema:audio-devices'),
   startShow: (show) => ipcRenderer.invoke('cinema:start', show),
   pauseShow: () => ipcRenderer.invoke('cinema:pause'),

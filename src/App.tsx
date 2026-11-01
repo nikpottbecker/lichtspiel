@@ -7,7 +7,7 @@ import Show from './components/Show';
 import Lighting from './components/Lighting';
 import { api } from './lib/api';
 import { moveItem, scheduledTime, validateShow } from './lib/show.mjs';
-import type { Environment, Media, Playback, Project } from './types';
+import type { Environment, Media, Playback, Project, Readiness, ShowOptions } from './types';
 
 const blank: Project = {
   version: 1,
@@ -36,6 +36,8 @@ export default function App() {
   const [saved, setSaved] = useState('Wird geladen …');
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
   const [armed, setArmed] = useState(false);
+  const [readiness, setReadiness] = useState<Readiness | null>(null);
+  const [checking, setChecking] = useState(false);
   const [playback, setPlayback] = useState<Playback>({
     status: 'idle',
     index: 0,
@@ -43,6 +45,7 @@ export default function App() {
     duration: 0,
   });
   const saveChain = useRef(Promise.resolve());
+  const readinessSerial = useRef(0);
   const fail = useCallback(
     (error: unknown) =>
       setNotice({ text: error instanceof Error ? error.message : String(error), error: true }),
@@ -52,6 +55,30 @@ export default function App() {
     (patch: Partial<Project>) => setProject((current) => ({ ...current, ...patch })),
     [],
   );
+  const checkReadiness = useCallback(async (options: ShowOptions) => {
+    const serial = ++readinessSerial.current;
+    setChecking(true);
+    setReadiness(null);
+    try {
+      const result = await api.checkShow(options);
+      if (serial === readinessSerial.current) setReadiness(result);
+    } catch (error) {
+      if (serial === readinessSerial.current)
+        setReadiness({
+          ready: false,
+          checks: [
+            {
+              id: 'media',
+              label: 'Startprüfung',
+              ok: false,
+              message: error instanceof Error ? error.message : String(error),
+            },
+          ],
+        });
+    } finally {
+      if (serial === readinessSerial.current) setChecking(false);
+    }
+  }, []);
   useEffect(() => {
     let cancelled = false;
     Promise.all([api.getEnvironment(), api.loadProject()])
@@ -135,6 +162,33 @@ export default function App() {
   const active = ['playing', 'paused', 'blackout'].includes(playback.status);
   const locked = active || armed || busy;
   const showOptions = { items, displayId: project.displayId, audioDevice: project.audioDevice };
+  useEffect(() => {
+    if (!ready) return;
+    const currentItems = project.queue
+      .map((id) => project.library.find((item) => item.id === id))
+      .filter((item): item is Media => !!item);
+    const options = {
+      items: currentItems,
+      displayId: project.displayId,
+      audioDevice: project.audioDevice,
+    };
+    const timer = setTimeout(() => void checkReadiness(options), 200);
+    const onFocus = () => void checkReadiness(options);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [
+    ready,
+    project.queue,
+    project.library,
+    project.displayId,
+    project.audioDevice,
+    environment.mpvPath,
+    environment.displays,
+    checkReadiness,
+  ]);
   const importMedia = () => {
     void perform(async () => {
       const media = await api.importMedia();
@@ -311,6 +365,9 @@ export default function App() {
           locked={locked}
           busy={busy}
           armed={armed}
+          readiness={readiness}
+          checking={checking}
+          onCheck={() => void checkReadiness(showOptions)}
           onChange={update}
           onImport={importMedia}
           onMove={(from, to) => update({ queue: moveItem(project.queue, from, to) })}

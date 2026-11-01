@@ -45,17 +45,21 @@ try {
   await page.getByRole('button', { name: 'Zur Vorstellung', exact: true }).click();
   await page.getByRole('button', { name: 'Beispielablauf ansehen' }).click();
   await page.getByRole('button', { name: 'Hinweis schließen' }).click();
+  await page.getByText('Prüfung erforderlich', { exact: true }).waitFor();
+  await page.getByText('Beispiele durch eigene Videos ersetzen', { exact: true }).waitFor();
   await page.getByText('Lokal gespeichert', { exact: true }).waitFor();
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: path.join(artifacts, 'implementation.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Vorstellung starten', exact: true }).click();
-  assert.match(await page.getByRole('alert').textContent(), /Beispielablauf/);
-  await page.getByRole('button', { name: 'Hinweis schließen' }).click();
+  assert.equal(
+    await page.getByRole('button', { name: 'Vorstellung starten', exact: true }).isDisabled(),
+    true,
+  );
   await page.getByRole('button', { name: 'Kinotrailer nach oben' }).click();
   assert.match(await page.locator('.cue-row').first().textContent(), /Kinotrailer/);
   await page.waitForTimeout(500);
   await page.reload();
   await page.locator('.cue-row').first().waitFor();
+  await page.getByText('Beispiele durch eigene Videos ersetzen', { exact: true }).waitFor();
   assert.match(await page.locator('.cue-row').first().textContent(), /Kinotrailer/);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(
@@ -63,6 +67,15 @@ try {
     false,
   );
   await page.screenshot({ path: path.join(artifacts, 'mobile.png'), fullPage: true });
+  await page.setViewportSize({ width: 1000, height: 900 });
+  assert.equal(
+    await page.evaluate(() => {
+      const rundown = document.querySelector('.rundown').getBoundingClientRect();
+      const details = document.querySelector('.output-panel').getBoundingClientRect();
+      return details.top >= rundown.bottom;
+    }),
+    true,
+  );
   await page.setViewportSize({ width: 1536, height: 1060 });
   for (const name of ['Willkommen', 'Kinotrailer', 'Hauptfilm'])
     await page.getByRole('button', { name: `${name} aus Ablauf entfernen`, exact: true }).click();
@@ -70,6 +83,7 @@ try {
   await page.getByRole('button', { name: 'Medien hinzufügen', exact: true }).click();
   await (await chooser).setFiles(fixture);
   await page.getByText('1 Datei importiert und zum Ablauf hinzugefügt.').waitFor();
+  await page.getByText('Bereit für den Start', { exact: true }).waitFor();
   await page.waitForTimeout(400);
   await page.reload();
   await page.getByRole('button', { name: 'Vorstellung starten', exact: true }).waitFor();
@@ -78,6 +92,8 @@ try {
   const popup = await popupPromise;
   await popup.getByRole('button', { name: 'Wiedergabe freigeben' }).click();
   await page.getByRole('button', { name: 'Pause', exact: true }).waitFor();
+  const transport = await page.locator('.transport').boundingBox();
+  assert.equal(!!transport && transport.y + transport.height <= 1060, true);
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   assert.equal(await popup.locator('video').evaluate((video) => video.paused), true);
   await page.getByRole('button', { name: 'Schwarzbild', exact: true }).click();
