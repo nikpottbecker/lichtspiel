@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import {
-  Aperture,
   ArrowDown,
   ArrowUp,
   Clapperboard,
@@ -13,17 +13,17 @@ import {
   SkipForward,
   Square,
   Trash2,
-  Sparkles,
+  Video,
 } from 'lucide-react';
 import type { Category, Environment, Media, Playback, Project } from '../types';
 import { durationLabel } from '../lib/show.mjs';
 
-const icons = { Werbung: Megaphone, Trailer: Clapperboard, Film, Intro: Sparkles };
+const icons = { Werbung: Megaphone, Trailer: Clapperboard, Film, Intro: Video };
 export function MediaIcon({ category }: { category: Category }) {
   const Icon = icons[category] || Film;
   return (
-    <span className={`media-icon category-${category}`}>
-      <Icon size={23} strokeWidth={1.5} />
+    <span className="media-icon">
+      <Icon size={18} strokeWidth={1.8} />
     </span>
   );
 }
@@ -49,6 +49,7 @@ interface Props {
   onDemo: () => void;
 }
 export default function Show(p: Props) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const total = p.items.reduce((sum, item) => sum + item.duration, 0);
   const elapsed =
     p.playback.status === 'finished'
@@ -58,19 +59,15 @@ export default function Show(p: Props) {
   const active = ['playing', 'paused', 'blackout'].includes(p.playback.status);
   const selected = p.environment.displays.find((d) => String(d.id) === p.project.displayId);
   const playingItem = p.items[p.playback.index];
-  const statuses = {
-    idle: 'Bereit für die große Leinwand',
-    playing: 'Vorstellung läuft',
-    paused: 'Vorstellung pausiert',
-    blackout: 'Schwarzbild · Ton pausiert',
-    error: 'Ausgabe unterbrochen',
-    finished: 'Vorstellung beendet',
-  };
+  const nextItem = p.items[p.playback.index + 1];
+  const focusedIndex = active ? p.playback.index : Math.min(selectedIndex, p.items.length - 1);
+  const focusedItem = p.items[focusedIndex];
+  const cueRemaining = Math.max(0, (playingItem?.duration || 0) - p.playback.position);
   return (
-    <>
+    <div className={`show-page ${active ? 'show-live' : ''}`}>
       <header className="page-header">
         <div>
-          <p className="page-context">Deine nächste Vorstellung</p>
+          <p className="page-context">VORSTELLUNG / REGIE</p>
           <input
             aria-label="Name der Vorstellung"
             className="title-input"
@@ -80,25 +77,104 @@ export default function Show(p: Props) {
             onChange={(e) => p.onChange({ title: e.target.value })}
           />
         </div>
-        <button className="button primary" onClick={p.onImport} disabled={p.locked || p.busy}>
+        <button className="button" onClick={p.onImport} disabled={p.locked || p.busy}>
           <Plus size={19} />
           Medien hinzufügen
         </button>
       </header>
+      <div className="show-status-strip" aria-label="Status der Vorstellung">
+        <div>
+          <span>AUSGABE</span>
+          <strong>{selected?.label || 'Nicht gewählt'}</strong>
+          <small>{p.environment.desktop ? 'Beamer / Bildschirm' : 'Browser-Vorschau'}</small>
+        </div>
+        <div>
+          <span>WIEDERGABE</span>
+          <strong>
+            {p.playback.status === 'playing'
+              ? 'Läuft'
+              : p.playback.status === 'paused'
+                ? 'Pausiert'
+                : p.playback.status === 'blackout'
+                  ? 'Schwarzbild'
+                  : p.playback.status === 'error'
+                    ? 'Unterbrochen'
+                    : p.playback.status === 'finished'
+                      ? 'Vorstellung beendet'
+                      : 'Nicht gestartet'}
+          </strong>
+          <small>
+            {p.environment.desktop
+              ? p.environment.mpvAvailable
+                ? 'mpv verfügbar'
+                : 'mpv einrichten'
+              : 'Eigene Videos im Browser'}
+          </small>
+        </div>
+        <div>
+          <span>START</span>
+          <strong>{p.armed ? 'Eingeplant' : active ? 'Gestartet' : 'Manuell'}</strong>
+          <small>
+            {p.project.startAt ? p.project.startAt.replace('T', ' · ') : 'Keine Startzeit'}
+          </small>
+        </div>
+      </div>
+      {active && (
+        <section className="show-live-focus" aria-label="Aktuelle Wiedergabe">
+          <div>
+            <span className="show-label">
+              JETZT ·{' '}
+              {p.playback.status === 'playing'
+                ? 'LÄUFT'
+                : p.playback.status === 'blackout'
+                  ? 'SCHWARZBILD'
+                  : 'PAUSIERT'}
+            </span>
+            <h1>{playingItem?.name || 'Vorstellung'}</h1>
+            <div className="show-live-clock">
+              <strong>{durationLabel(p.playback.position)}</strong>
+              <span>/ {durationLabel(playingItem?.duration || 0)}</span>
+            </div>
+            <progress
+              aria-label="Fortschritt des aktuellen Clips"
+              value={p.playback.position}
+              max={playingItem?.duration || 1}
+            />
+            <small>Noch {durationLabel(cueRemaining)}</small>
+          </div>
+          <div className="show-live-next">
+            <span className="show-label">ALS NÄCHSTES</span>
+            <strong>{nextItem?.name || 'Ende der Vorstellung'}</strong>
+            <small>
+              {nextItem
+                ? `${nextItem.category} · ${durationLabel(nextItem.duration)}`
+                : 'Keine weiteren Medien'}
+            </small>
+          </div>
+        </section>
+      )}
       <div className="show-columns">
         <section className="panel rundown">
           <div className="section-heading">
             <h2>Ablauf</h2>
             <span>
-              {p.items.length} Elemente · {durationLabel(total)}
+              {p.items.length} {p.items.length === 1 ? 'Element' : 'Elemente'} ·{' '}
+              {durationLabel(total)}
             </span>
+          </div>
+          <div className="cue-columns" aria-hidden="true">
+            <span>NR.</span>
+            <span>ELEMENT</span>
+            <span>DAUER</span>
+            <span>STATUS</span>
+            <span>REIHENFOLGE</span>
           </div>
           {p.items.length ? (
             <ol className="cue-list">
               {p.items.map((item, index) => (
                 <li
                   key={`${item.id}-${index}`}
-                  className={`cue-row ${active && p.playback.index === index ? 'current' : ''}`}
+                  className={`cue-row ${focusedIndex === index ? 'current' : ''}`}
                   draggable={!p.locked}
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', String(index))}
                   onDragOver={(e) => e.preventDefault()}
@@ -111,16 +187,41 @@ export default function Show(p: Props) {
                   }}
                 >
                   <GripVertical className="drag-handle" size={17} />
-                  <span className="cue-number">{String(index + 1).padStart(2, '0')}</span>
-                  <MediaIcon category={item.category} />
-                  <div className="cue-copy">
-                    <strong title={item.name}>{item.name}</strong>
-                    <span>
-                      {item.category}
-                      {item.demo ? ' · Beispiel' : ''}
+                  <button
+                    className="cue-select"
+                    type="button"
+                    aria-label={`Details zu ${item.name}`}
+                    aria-current={focusedIndex === index ? 'true' : undefined}
+                    onClick={() => setSelectedIndex(index)}
+                  >
+                    <span className="cue-number">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="cue-identity">
+                      <MediaIcon category={item.category} />
+                      <span className="cue-copy">
+                        <strong title={item.name}>{item.name}</strong>
+                        <span>
+                          {item.category}
+                          {item.demo ? ' · Beispiel' : ''}
+                        </span>
+                      </span>
                     </span>
-                  </div>
-                  <time>{durationLabel(item.duration)}</time>
+                    <time>{durationLabel(item.duration)}</time>
+                    <span
+                      className={`cue-state ${active && p.playback.index === index ? 'running' : ''}`}
+                    >
+                      {active
+                        ? index < p.playback.index
+                          ? 'Gespielt'
+                          : index === p.playback.index
+                            ? p.playback.status === 'playing'
+                              ? 'Läuft'
+                              : 'Pausiert'
+                            : 'Wartet'
+                        : item.demo
+                          ? 'Beispiel'
+                          : 'Geplant'}
+                    </span>
+                  </button>
                   <div className="row-actions">
                     <button
                       className="icon-button"
@@ -171,18 +272,46 @@ export default function Show(p: Props) {
         </section>
         <section className="panel output-panel">
           <div className="section-heading">
-            <h2>Ausgabe</h2>
+            <h2>Details</h2>
             {active && (
               <span className="live-dot">
-                {p.playback.status === 'playing' ? 'Läuft' : 'Pausiert'}
+                {p.playback.status === 'playing'
+                  ? 'Läuft'
+                  : p.playback.status === 'blackout'
+                    ? 'Schwarzbild'
+                    : 'Pausiert'}
               </span>
             )}
           </div>
-          <div className={`output-canvas ${p.playback.status === 'blackout' ? 'blacked-out' : ''}`}>
-            <Aperture size={42} strokeWidth={1} />
-            <p>{statuses[p.playback.status]}</p>
-            {active && <small>{playingItem?.name}</small>}
+          <div className="cue-details">
+            <span className="show-label">
+              {focusedItem ? `ELEMENT ${String(focusedIndex + 1).padStart(2, '0')}` : 'ELEMENT'}
+            </span>
+            <strong>{focusedItem?.name || 'Kein Element gewählt'}</strong>
+            {focusedItem ? (
+              <dl>
+                <div>
+                  <dt>Typ</dt>
+                  <dd>{focusedItem.category}</dd>
+                </div>
+                <div>
+                  <dt>Dauer</dt>
+                  <dd>{durationLabel(focusedItem.duration)}</dd>
+                </div>
+                <div>
+                  <dt>Datei</dt>
+                  <dd title={focusedItem.path || focusedItem.name}>
+                    {focusedItem.demo
+                      ? 'Beispiel · nicht abspielbar'
+                      : focusedItem.path || 'Im Browser gespeichert'}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p>Wähle ein Element im Ablauf.</p>
+            )}
           </div>
+          <div className="output-heading show-label">AUSGABE</div>
           <label className="field-label" htmlFor="display-select">
             {p.environment.desktop ? 'Beamer' : 'Ausgabefenster'}
           </label>
@@ -221,28 +350,8 @@ export default function Show(p: Props) {
       </div>
       <section className="panel timeline-panel">
         <div className="section-heading">
-          <h2>Zeitachse</h2>
-          <span>Gesamtdauer: {durationLabel(total)}</span>
-        </div>
-        <div className="timeline" aria-label="Zeitachse des Ablaufs">
-          {p.items.length ? (
-            p.items.map((item, index) => (
-              <div
-                className={`timeline-segment category-${item.category}`}
-                key={`${item.id}-${index}`}
-                style={{ flexGrow: item.duration || 1 }}
-                title={`${item.name} · ${durationLabel(item.duration)}`}
-              >
-                <div className="timeline-bar" />
-                <strong>{item.category}</strong>
-                <span>{durationLabel(item.duration)}</span>
-              </div>
-            ))
-          ) : (
-            <span className="muted">
-              Deine Medien erscheinen hier in der geplanten Reihenfolge.
-            </span>
-          )}
+          <h2>Zeitsteuerung</h2>
+          <span>Einmaliger Start · App geöffnet lassen</span>
         </div>
         <div className="schedule-row">
           <label htmlFor="start-at">Startzeit</label>
@@ -329,6 +438,6 @@ export default function Show(p: Props) {
           </button>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

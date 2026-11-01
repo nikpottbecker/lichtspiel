@@ -34,9 +34,15 @@ Für Heimkinos, Vereine und eigene Filmprojekte. Lokal auf deinem Rechner, ohne 
 > **Version 0.1.0 ist eine Entwicklungsvorschau aus dem Quellcode.** Signierte Installationspakete sind noch nicht veröffentlicht. Beamer, Audio und reale Lampen müssen am jeweiligen Mac- oder Windows-Aufbau geprüft werden.
 
 <p align="center">
-  <img src="docs/assets/show-control.png" alt="Lichtspiels Ablaufeditor mit Werbung, Trailer, Hauptfilm, Zeitachse und Wiedergabesteuerung" width="100%">
+  <img src="docs/assets/show-control.png" alt="Lichtspiels Regieansicht mit Ablaufliste, Dateidetails, Ausgabestatus und Wiedergabesteuerung" width="100%">
 </p>
 <p align="center"><sub>Die tatsächliche Oberfläche mit einem Beispielablauf. Eigene Videodateien werden lokal importiert.</sub></p>
+
+Während der Vorstellung zeigt die Regieansicht den laufenden Clip, seine Restzeit und das nächste Element im Ablauf.
+
+<p align="center">
+  <img src="docs/assets/live-control.png" alt="Lichtspiels Ansicht während einer pausierten Vorstellung mit aktuellem und nächstem Clip" width="100%">
+</p>
 
 ## Alles für den Ablauf
 

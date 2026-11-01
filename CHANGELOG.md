@@ -7,12 +7,18 @@
 - Desktop-Grundlage für macOS und Windows mit React, TypeScript und Electron.
 - Einrichtungsassistent für mpv, Wiedergabebildschirm und Audioausgabe.
 - Lokale Mediathek, Medienkategorien, Suche und sortierbarer Vorführablauf.
-- Gesamtlaufzeit, Zeitachse und einmalige Startplanung.
+- Gesamtlaufzeit, klare Regieansicht und einmalige Startplanung.
 - mpv-Wiedergabesteuerung mit Pause, Fortsetzen, Clipwechsel, Stopp und Schwarzbild.
 - Home-Assistant-Verbindung mit verschlüsselter Tokenablage und vier Lichtregeln.
 - Getrennte Aktionen für Verbindungstest, Lichtvorschau und ausdrücklichen Gerätetest.
 - Browser-Vorschau mit lokalen Videokopien, separatem Ausgabefenster und Wiedergabefreigabe.
 - Automatisierte Prüfungen und Anleitungen zu Einrichtung, Entwicklung und Lichtsteuerung.
+
+### Überarbeitet
+
+- Die Regieansicht zeigt Medien als kompakte Ablaufliste mit Dateidetails und Ausgabestatus.
+- Während der Wiedergabe sind aktueller und nächster Clip samt Laufzeit direkt sichtbar.
+- Navigation, Mediathek, Einrichtung und Lichtsteuerung nutzen eine einheitlichere, ruhigere Gestaltung.
 
 ### Stand der Erprobung
 
