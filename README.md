@@ -117,6 +117,7 @@ Der aktuelle Umfang umfasst weder DCP/KDM-Kinopakete noch Projektor- und Vorhang
 | Du möchtest …                              | Hier geht es weiter                                                                         |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | die erste Vorstellung einrichten           | [Startanleitung](docs/getting-started.md)                                                   |
+| einen Vorführrechner praktisch prüfen      | [Geräteprüfung](docs/hardware-test.md)                                                      |
 | deine Kinolichter anbinden                 | [Home Assistant](docs/home-assistant.md)                                                    |
 | lokal entwickeln, testen oder Pakete bauen | [Entwicklung](docs/development.md)                                                          |
 | den technischen Aufbau verstehen           | [Architektur](docs/architecture.md)                                                         |

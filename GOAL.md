@@ -23,4 +23,4 @@ Lichtspiel soll einen vorbereiteten Filmabend auf macOS und Windows sicher und a
 - [ ] Praktische Testmatrix für macOS, Windows, Beamer, Ton und Home Assistant.
 - [ ] Signierte, dokumentierte Installationspakete.
 
-Die offenen Punkte werden in dieser Reihenfolge bearbeitet, wenn neue Erkenntnisse nicht eine andere Reihenfolge begründen. [Roadmap](docs/roadmap.md) und [Entwicklung](docs/development.md) enthalten weitere Details.
+Die offenen Punkte werden in dieser Reihenfolge bearbeitet, wenn neue Erkenntnisse nicht eine andere Reihenfolge begründen. Die [Geräteprüfung](docs/hardware-test.md) definiert die praktischen Tests; [Roadmap](docs/roadmap.md) und [Entwicklung](docs/development.md) enthalten weitere Details.
