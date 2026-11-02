@@ -171,6 +171,8 @@ class MpvPlayer(QObject):
         items: list[dict],
         screen_index: int,
         audio_device: str = "auto",
+        start_index: int = 0,
+        start_position: float = 0.0,
     ):
         if self.active() or self.process.state() != QProcess.NotRunning:
             raise RuntimeError("Eine Vorstellung läuft bereits.")
@@ -178,7 +180,13 @@ class MpvPlayer(QObject):
             raise RuntimeError("mpv fehlt. Wähle den Player in der Einrichtung aus.")
         if not items:
             raise RuntimeError("Der Ablauf ist leer.")
+        if (
+            not 0 <= start_index < len(items)
+            or not 0 <= start_position < items[start_index]["duration"]
+        ):
+            raise ValueError("Ungültiger Wiederaufnahmepunkt.")
         self.items = [dict(item) for item in items]
+        self.start_position = start_position
         self.intentional_stop = False
         self.buffer = b""
         self.stderr_tail = b""
@@ -209,9 +217,9 @@ class MpvPlayer(QObject):
         )
         self._update(
             status="starting",
-            index=0,
-            position=0.0,
-            duration=items[0]["duration"],
+            index=start_index,
+            position=start_position,
+            duration=items[start_index]["duration"],
             message="",
         )
         self.process.start()
@@ -223,7 +231,12 @@ class MpvPlayer(QObject):
             self.connect_timer.stop()
             self._command(["observe_property", 1, "time-pos"])
             self._command(["observe_property", 2, "duration"])
-            self._command(["loadfile", self.items[0]["path"], "replace"])
+            media = self.items[self.state["index"]]
+            command = ["loadfile", media["path"], "replace"]
+            if self.start_position:
+                # mpv's fourth loadfile argument applies only to this file.
+                command.extend([-1, f"start={self.start_position:.3f}"])
+            self._command(command)
             self.last_reply = time.monotonic()
             self.watchdog.start()
             self._update(status="playing")

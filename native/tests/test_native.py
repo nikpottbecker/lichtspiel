@@ -17,6 +17,7 @@ from native.lichtspiel.model import (
     save_project,
 )
 from native.lichtspiel.player import display_args, test_pattern_path
+from native.lichtspiel.recovery import checkpoint, write_checkpoint
 from native.lichtspiel.widgets import ElidedLabel
 from native.lichtspiel.window import MainWindow
 
@@ -153,6 +154,106 @@ class NativeWindowTests(unittest.TestCase):
         self.assertTrue(title.text().endswith("…"))
         self.assertEqual(title.toolTip(), full)
         title.close()
+
+    def test_restart_point_requires_explicit_resume_and_preflight(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            media = directory / "film.mp4"
+            media.write_bytes(b"sample")
+            project = empty_project()
+            project["library"] = [
+                {
+                    "id": "film",
+                    "name": "Hauptfilm",
+                    "path": str(media),
+                    "category": "Film",
+                    "duration": 120,
+                    "size": 6,
+                }
+            ]
+            project["queue"] = ["film"]
+            write_checkpoint(
+                directory / "show-recovery.json",
+                checkpoint(project, project["library"], {"index": 0, "position": 40}),
+            )
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project", return_value=project
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory", return_value=directory
+                ),
+            ):
+                window = MainWindow()
+                window.mpv = "/fake/mpv"
+                window._set_page(0)
+                self.assertTrue(window.recovery_card.isVisible() is False)
+                window.show()
+                self.app.processEvents()
+                self.assertTrue(window.recovery_card.isVisible())
+                self.assertEqual(window.player.state["status"], "idle")
+                self.assertFalse(window.start_button.isEnabled())
+                self.assertFalse(window.schedule_button.isEnabled())
+                window.jobs.clear()
+                window.mpv = "/fake/mpv"
+                completed = Future()
+                completed.set_result(project["library"])
+                with (
+                    mock.patch.object(window, "_selected_screen_index", return_value=0),
+                    mock.patch.object(
+                        window.executor, "submit", return_value=completed
+                    ),
+                    mock.patch.object(window.player, "start") as start,
+                ):
+                    window._resume_recovery()
+                    start.assert_not_called()
+                    window._poll_jobs()
+                    start.assert_called_once_with(
+                        "/fake/mpv", project["library"], 0, "auto", 0, 40.0
+                    )
+                window._discard_recovery()
+                self.assertTrue(window.start_button.isEnabled())
+                window.jobs[-1][0].result(timeout=2)
+                self.assertFalse((directory / "show-recovery.json").exists())
+                window.close()
+
+    def test_active_show_saves_restart_point_and_clean_stop_removes_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            project = empty_project()
+            project["library"] = [
+                {"id": "clip", "name": "Clip", "path": "/tmp/clip.mp4", "duration": 80}
+            ]
+            project["queue"] = ["clip"]
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project", return_value=project
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory", return_value=directory
+                ),
+            ):
+                window = MainWindow()
+                window.player.items = project["library"]
+                window._player_state(
+                    {"status": "playing", "index": 0, "position": 24, "duration": 80}
+                )
+                window.jobs[-1][0].result(timeout=2)
+                self.assertTrue((directory / "show-recovery.json").exists())
+                window._player_state(
+                    {"status": "idle", "index": 0, "position": 0, "duration": 0}
+                )
+                window.jobs[-1][0].result(timeout=2)
+                self.assertFalse((directory / "show-recovery.json").exists())
+                window._player_state(
+                    {"status": "playing", "index": 0, "position": 30, "duration": 80}
+                )
+                window._player_state(
+                    {"status": "idle", "index": 0, "position": 0, "duration": 0}
+                )
+                window.jobs[-1][0].result(timeout=2)
+                self.assertFalse((directory / "show-recovery.json").exists())
+                window.close()
 
 
 if __name__ == "__main__":

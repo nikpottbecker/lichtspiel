@@ -1,6 +1,7 @@
 """Qt Widgets control room. Video stays in mpv's own process and window."""
 
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime
@@ -45,6 +46,13 @@ from .model import (
 )
 from .player import MpvPlayer, ProjectionTest, audio_devices, find_mpv, probe_duration
 from .progress import clock, timing
+from .recovery import (
+    checkpoint,
+    clear_checkpoint,
+    read_checkpoint,
+    validate_checkpoint,
+    write_checkpoint,
+)
 from .style import STYLESHEET
 from .widgets import ElidedLabel
 
@@ -103,6 +111,18 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLESHEET)
         self.project = load_project()
         self.settings_path = data_directory() / "settings.json"
+        self.recovery_path = data_directory() / "show-recovery.json"
+        self.recovery = None
+        self.recovery_error = ""
+        try:
+            self.recovery = read_checkpoint(self.recovery_path, self.project)
+        except (TypeError, ValueError) as error:
+            self.recovery_error = str(error)
+        self.recovery_saved_at = 0.0
+        self.recovery_saved_status = ""
+        self.recovery_saved_index = -1
+        self.was_active = False
+        self.preserve_recovery_on_close = False
         self.native_display_id = self._read_settings().get("nativeDisplayId", "")
         self.mpv = ""
         self.player = MpvPlayer(self)
@@ -112,7 +132,11 @@ class MainWindow(QMainWindow):
         self.executor = ThreadPoolExecutor(
             max_workers=2, thread_name_prefix="lichtspiel-media"
         )
+        self.recovery_executor = ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="lichtspiel-recovery"
+        )
         self.jobs: list[tuple[object, object]] = []
+        self.import_pending = False
         self.scheduled_at: float | None = None
         self._build()
         self.player.state_changed.connect(self._player_state)
@@ -126,6 +150,7 @@ class MainWindow(QMainWindow):
         self.schedule_timer.timeout.connect(self._schedule_tick)
         self.schedule_timer.start()
         self._refresh_all()
+        self._refresh_recovery()
         self._set_page(
             0
             if self.project.get("onboarded") and self._selected_screen_index() >= 0
@@ -256,6 +281,22 @@ class MainWindow(QMainWindow):
         transport_column = QVBoxLayout(self.transport_surface)
         transport_column.setContentsMargins(0, 12, 0, 0)
         transport_column.setSpacing(10)
+        self.recovery_card = QFrame()
+        self.recovery_card.setObjectName("recoveryCard")
+        recovery_layout = QVBoxLayout(self.recovery_card)
+        recovery_layout.setContentsMargins(16, 11, 16, 12)
+        self.recovery_info = label("", "hint")
+        recovery_layout.addWidget(self.recovery_info)
+        recovery_actions = QHBoxLayout()
+        self.recovery_button = button(
+            "An gespeicherter Stelle fortsetzen", self._resume_recovery, "primary"
+        )
+        recovery_actions.addWidget(self.recovery_button)
+        recovery_actions.addWidget(button("Verwerfen", self._discard_recovery))
+        recovery_actions.addStretch()
+        recovery_layout.addLayout(recovery_actions)
+        transport_column.addWidget(self.recovery_card)
+        self.recovery_card.hide()
         live_card = QFrame()
         live_card.setObjectName("liveCard")
         live = QVBoxLayout(live_card)
@@ -356,7 +397,8 @@ class MainWindow(QMainWindow):
         row = QHBoxLayout()
         self.import_button = button("Medien hinzufügen", self._import_media, "primary")
         row.addWidget(self.import_button)
-        row.addWidget(button("Zum Ablauf", self._add_to_queue))
+        self.add_queue_button = button("Zum Ablauf", self._add_to_queue)
+        row.addWidget(self.add_queue_button)
         row.addWidget(button("Aus Mediathek entfernen", self._remove_library))
         row.addStretch()
         column.addLayout(row)
@@ -849,6 +891,7 @@ class MainWindow(QMainWindow):
         self.queue_list.setCurrentRow(min(selected_queue, self.queue_list.count() - 1))
         self._library_selection(self.library_list.currentRow())
         self.readiness.setText("Ablauf geändert · Startprüfung erneut ausführen")
+        self._refresh_recovery()
 
     @staticmethod
     def _duration(seconds) -> str:
@@ -871,6 +914,8 @@ class MainWindow(QMainWindow):
         self.category_combo.blockSignals(False)
 
     def _change_category(self, value: str):
+        if self.player.active():
+            return
         row = self.library_list.currentRow()
         if 0 <= row < len(self.project["library"]):
             self.project["library"][row]["category"] = value
@@ -878,6 +923,8 @@ class MainWindow(QMainWindow):
             self._refresh_lists()
 
     def _import_media(self):
+        if self.player.active() or self.import_pending:
+            return
         if not self.mpv:
             self._error("Bitte zuerst mpv in Bild & Ton auswählen.")
             return
@@ -886,21 +933,37 @@ class MainWindow(QMainWindow):
         )
         if not paths:
             return
+        self.import_pending = True
         self.import_button.setEnabled(False)
+        self.start_button.setEnabled(False)
         self.status.setText(f"{len(paths)} Datei(en) werden geprüft …")
         future = self.executor.submit(import_files, self.mpv, paths)
 
         def complete(result):
+            self.import_pending = False
             self.project["library"].extend(result)
             self.project["queue"].extend(item["id"] for item in result)
             self._save()
             self._refresh_lists()
             self.import_button.setEnabled(True)
+            self.start_button.setEnabled(
+                self.recovery is None and not self.recovery_error
+            )
             self.status.setText(f"{len(result)} Medium/Medien importiert.")
 
-        self.jobs.append((future, complete))
+        def failed(error):
+            self.import_pending = False
+            self.import_button.setEnabled(True)
+            self.start_button.setEnabled(
+                self.recovery is None and not self.recovery_error
+            )
+            self.status.setText(f"Medienimport fehlgeschlagen: {error}")
+
+        self.jobs.append((future, complete, failed))
 
     def _add_to_queue(self):
+        if self.player.active():
+            return
         row = self.library_list.currentRow()
         if row < 0:
             return
@@ -1018,8 +1081,165 @@ class MainWindow(QMainWindow):
 
         self.jobs.append((future, complete))
 
+    def _refresh_recovery(self):
+        available = self.recovery is not None or bool(self.recovery_error)
+        self.recovery_card.setVisible(available and not self.player.active())
+        self.schedule_button.setEnabled(not available and not self.player.active())
+        if not available:
+            return
+        if self.recovery is not None:
+            try:
+                validate_checkpoint(self.recovery, self.project)
+            except (TypeError, ValueError) as error:
+                self.recovery_error = str(error)
+            else:
+                self.recovery_error = ""
+        if self.recovery_error:
+            self.recovery_info.setText(
+                f"Wiederaufnahme nicht möglich: {self.recovery_error} Verwirf den Punkt oder stelle den bisherigen Ablauf wieder her."
+            )
+            self.recovery_button.setEnabled(False)
+            return
+        point = self.recovery
+        media = queued_media(self.project)[point["index"]]
+        self.recovery_info.setText(
+            f"Unterbrochene Vorstellung · {media.get('name', 'Clip')} bei ungefähr {clock(point['position'])}. "
+            "Vor dem Fortsetzen werden Medien und Ausgabe erneut geprüft."
+        )
+        self.recovery_button.setEnabled(True)
+
+    def _discard_recovery(self):
+        try:
+            future = self.recovery_executor.submit(clear_checkpoint, self.recovery_path)
+        except RuntimeError as error:
+            self.status.setText(
+                f"Wiederaufnahmepunkt konnte nicht gelöscht werden: {error}"
+            )
+            return
+        self.jobs.append((future, lambda _result: None, self._recovery_storage_error))
+        self.recovery = None
+        self.recovery_error = ""
+        self._refresh_recovery()
+        self.start_button.setEnabled(
+            not self.player.active() and not self.import_pending
+        )
+        self.status.setText("Wiederaufnahmepunkt verworfen.")
+
+    def _resume_recovery(self):
+        if (
+            self.player.active()
+            or self.projection.active()
+            or self.recovery is None
+            or self.recovery_error
+        ):
+            return
+        if not self.mpv or self._selected_screen_index() < 0:
+            self.status.setText("Wähle zuerst mpv und den Ausgabebildschirm.")
+            return
+        point = self.recovery.copy()
+        screen = self._selected_screen_index()
+        binary = self.mpv
+        audio = self.project.get("audioDevice", "auto")
+        self.recovery_button.setEnabled(False)
+        self.readiness.setText("Wiederaufnahme wird geprüft …")
+        future = self.executor.submit(preflight, deepcopy(self.project))
+
+        def complete(items):
+            self.recovery_button.setEnabled(True)
+            validate_checkpoint(point, self.project)
+            if (
+                self._selected_screen_index() != screen
+                or self.mpv != binary
+                or self.projection.active()
+            ):
+                raise RuntimeError(
+                    "Die Ausgabe hat sich geändert. Bitte erneut prüfen."
+                )
+            if [item["path"] for item in items] != point["paths"]:
+                raise RuntimeError(
+                    "Die Medien haben sich geändert. Bitte erneut prüfen."
+                )
+            index = point["index"]
+            position = min(point["position"], max(0.0, items[index]["duration"] - 0.1))
+            self.player.start(binary, items, screen, audio, index, position)
+            self.readiness.setText("Wiederaufnahme geprüft")
+
+        def failed(error):
+            self.recovery_button.setEnabled(True)
+            self.readiness.setText(str(error))
+            self.status.setText(f"Wiederaufnahme nicht möglich: {error}")
+
+        self.jobs.append((future, complete, failed))
+
+    def _persist_recovery(self, state: dict):
+        status = state["status"]
+        active = status in ("starting", "playing", "paused", "blackout")
+        if active:
+            self.was_active = True
+            now = time.monotonic()
+            if (
+                status == self.recovery_saved_status
+                and state["index"] == self.recovery_saved_index
+                and now - self.recovery_saved_at < 5
+            ):
+                return
+            try:
+                point = checkpoint(self.project, self.player.items, state)
+                future = self.recovery_executor.submit(
+                    write_checkpoint, self.recovery_path, point
+                )
+            except (RuntimeError, ValueError, KeyError) as error:
+                self.recovery_saved_at = now
+                self.recovery_saved_status = status
+                self.recovery_saved_index = state["index"]
+                self.status.setText(
+                    f"Wiederaufnahmepunkt konnte nicht gespeichert werden: {error}"
+                )
+                return
+            self.jobs.append(
+                (future, lambda _result: None, self._recovery_storage_error)
+            )
+            self.recovery = point
+            self.recovery_error = ""
+            self.recovery_saved_at = now
+            self.recovery_saved_status = status
+            self.recovery_saved_index = state["index"]
+        elif status in ("idle", "finished") and self.was_active:
+            if not self.preserve_recovery_on_close:
+                try:
+                    future = self.recovery_executor.submit(
+                        clear_checkpoint, self.recovery_path
+                    )
+                    self.jobs.append(
+                        (future, lambda _result: None, self._recovery_storage_error)
+                    )
+                    self.recovery = None
+                    self.recovery_error = ""
+                except RuntimeError as error:
+                    self.status.setText(
+                        f"Wiederaufnahmepunkt konnte nicht gelöscht werden: {error}"
+                    )
+            self.was_active = False
+            self.recovery_saved_at = 0.0
+            self.recovery_saved_status = ""
+            self.recovery_saved_index = -1
+        self._refresh_recovery()
+
+    def _recovery_storage_error(self, error):
+        self.status.setText(
+            f"Wiederaufnahmepunkt konnte nicht gespeichert werden: {error}"
+        )
+
     def _start_show(self):
         if self.player.active() or self.projection.active():
+            return
+        if self.import_pending:
+            self.status.setText("Warte, bis der Medienimport abgeschlossen ist.")
+            return
+        if self.recovery is not None or self.recovery_error:
+            self.status.setText(
+                "Setze die unterbrochene Vorstellung fort oder verwirf den Wiederaufnahmepunkt."
+            )
             return
         if not self.mpv or self._selected_screen_index() < 0:
             self._error("Wähle zuerst mpv und einen Ausgabebildschirm.")
@@ -1059,12 +1279,20 @@ class MainWindow(QMainWindow):
                 if on_error:
                     on_error[0](error)
                     continue
-                self.import_button.setEnabled(True)
-                self.start_button.setEnabled(True)
+                self.import_button.setEnabled(not self.import_pending)
+                self.start_button.setEnabled(
+                    not self.import_pending
+                    and not self.player.active()
+                    and self.recovery is None
+                    and not self.recovery_error
+                )
                 self.readiness.setText(str(error))
                 self._error(str(error))
 
     def _schedule(self):
+        if self.recovery is not None or self.recovery_error:
+            self.status.setText("Verwirf zuerst den Wiederaufnahmepunkt.")
+            return
         when = self.time_input.dateTime().toSecsSinceEpoch()
         if when <= datetime.now().timestamp():
             self._error("Wähle eine zukünftige Startzeit.")
@@ -1108,13 +1336,22 @@ class MainWindow(QMainWindow):
         status = state["status"]
         active = status in ("starting", "playing", "paused", "blackout")
         measure = timing(state, self.player.items)
+        self._persist_recovery(state)
         self._sync_wake()
         light_event = self.lighting.observe(state, self.player.items)
         if light_event:
             future = self.lighting.submit_auto(light_event)
             self._queue_light_job(future, self._light_success)
         self.save_light_button.setEnabled(not active)
-        self.start_button.setEnabled(not active)
+        self.import_button.setEnabled(not active and not self.import_pending)
+        self.add_queue_button.setEnabled(not active)
+        self.category_combo.setEnabled(not active)
+        self.start_button.setEnabled(
+            not active
+            and not self.import_pending
+            and self.recovery is None
+            and not self.recovery_error
+        )
         self.pause_button.setEnabled(status == "playing")
         self.resume_button.setEnabled(status in ("paused", "blackout"))
         self.blackout_button.setEnabled(status in ("playing", "paused"))
@@ -1208,11 +1445,15 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.Yes:
                 event.ignore()
                 return
+        self.preserve_recovery_on_close = (
+            self.player.active() or self.recovery is not None
+        )
         self.player.stop()
         self.wake_guard.close()
         if self.projection.active():
             self.projection.process.kill()
         self.executor.shutdown(wait=False, cancel_futures=True)
+        self.recovery_executor.shutdown(wait=False, cancel_futures=False)
         self.lighting.close()
         super().closeEvent(event)
 

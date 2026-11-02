@@ -25,9 +25,10 @@ Prüfe die Änderung mit passenden Logik-, UI- und Pakettests; sieh neue Oberfl�
 - [x] Sichtbare Startprüfung für Medien, Player und Ausgabe.
 - [x] Erste native Qt-Regie ohne Chromium mit eigenem mpv-Prozess und fest sichtbaren Vorführtasten.
 - [x] Live-Fortschritt für Clip und Gesamtablauf sowie erweiterte Home-Assistant-Regeln in der Qt-Vorschau.
+- [x] Bewusste Wiederaufnahme einer unterbrochenen Qt-Vorstellung nach Medien- und Ausgabeprüfung.
 - [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [ ] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
-- [ ] Wiederherstellung und Vorführprotokoll bei Unterbrechungen.
+- [ ] Vorführprotokoll für Start, Eingriffe, Clipwechsel und Fehler sowie weitere Wiederherstellungsfälle.
 - [ ] Mehrere gespeicherte Vorstellungen und wiederverwendbare Vorlagen.
 - [ ] Praktische Testmatrix für macOS, Windows, Beamer, Ton und Home Assistant.
 - [ ] Signierte, dokumentierte Installationspakete.

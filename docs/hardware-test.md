@@ -23,25 +23,27 @@ Für die [Qt-Vorschau](../native/README.md) gibt es einen eigenen [Paket-Workflo
 
 Trage für jeden Schritt **Bestanden**, **Fehlgeschlagen** oder **Nicht zutreffend** und eine kurze Beobachtung ein. Prüfe am Beamer und am Lautsprecher, nicht nur in der Regieansicht.
 
-| Schritt                                                                             | macOS | Windows | Beobachtung |
-| ----------------------------------------------------------------------------------- | ----- | ------- | ----------- |
-| App aus dem Paket starten und mpv erkennen                                          |       |         |             |
-| Beamer als erweiterten Bildschirm wählen; Bild landet dort                          |       |         |             |
-| Testkarte über mpv ausgeben: Rahmen, Ecken, Kreis, Linien und Farben prüfen         |       |         |             |
-| Ton über das gewählte HDMI-Gerät oder Audiointerface ausgeben                       |       |         |             |
-| Werbung → Trailer → Film ohne Eingriff abspielen                                    |       |         |             |
-| Mehrere Clips unterschiedlicher Auflösung und Bildrate abspielen                    |       |         |             |
-| Einen Film von mindestens 90 Minuten ohne Schlafmodus durchlaufen lassen            |       |         |             |
-| Pause und Fortsetzen erhalten Bild, Ton und Clipposition                            |       |         |             |
-| Fortschrittsbalken und Restzeit stimmen bei Clipwechsel, Pause und Filmende         |       |         |             |
-| Schwarzbild pausiert Bild und Ton; Fortsetzen stellt beides wieder her              |       |         |             |
-| Zum nächsten Clip wechseln; danach regulär beenden                                  |       |         |             |
-| Vor dem Start eine Datei verschieben: Startprüfung meldet den Fehler                |       |         |             |
-| Vor dem Start Beamer entfernen: Startprüfung meldet den Fehler                      |       |         |             |
-| Startzeit für eine spätere Uhrzeit setzen und genau einmal ausführen                |       |         |             |
-| Verpassten geplanten Start nach Schlaf oder Neustart verständlich melden            |       |         |             |
-| App während einer Vorstellung schließen und wieder öffnen: Zustand ist verständlich |       |         |             |
-| Player während der Qt-Vorstellung beenden: Regie zeigt einen Fehler                 |       |         |             |
+| Schritt                                                                                          | macOS | Windows | Beobachtung |
+| ------------------------------------------------------------------------------------------------ | ----- | ------- | ----------- |
+| App aus dem Paket starten und mpv erkennen                                                       |       |         |             |
+| Beamer als erweiterten Bildschirm wählen; Bild landet dort                                       |       |         |             |
+| Testkarte über mpv ausgeben: Rahmen, Ecken, Kreis, Linien und Farben prüfen                      |       |         |             |
+| Ton über das gewählte HDMI-Gerät oder Audiointerface ausgeben                                    |       |         |             |
+| Werbung → Trailer → Film ohne Eingriff abspielen                                                 |       |         |             |
+| Mehrere Clips unterschiedlicher Auflösung und Bildrate abspielen                                 |       |         |             |
+| Einen Film von mindestens 90 Minuten ohne Schlafmodus durchlaufen lassen                         |       |         |             |
+| Pause und Fortsetzen erhalten Bild, Ton und Clipposition                                         |       |         |             |
+| Fortschrittsbalken und Restzeit stimmen bei Clipwechsel, Pause und Filmende                      |       |         |             |
+| Schwarzbild pausiert Bild und Ton; Fortsetzen stellt beides wieder her                           |       |         |             |
+| Zum nächsten Clip wechseln; danach regulär beenden                                               |       |         |             |
+| Vor dem Start eine Datei verschieben: Startprüfung meldet den Fehler                             |       |         |             |
+| Vor dem Start Beamer entfernen: Startprüfung meldet den Fehler                                   |       |         |             |
+| Startzeit für eine spätere Uhrzeit setzen und genau einmal ausführen                             |       |         |             |
+| Verpassten geplanten Start nach Schlaf oder Neustart verständlich melden                         |       |         |             |
+| App während einer Vorstellung schließen und wieder öffnen: Zustand ist verständlich              |       |         |             |
+| Player während der Qt-Vorstellung beenden: Regie zeigt einen Fehler                              |       |         |             |
+| Qt-App nach Unterbrechung neu öffnen: Leinwand bleibt aus, gespeicherten Clip bewusst fortsetzen |       |         |             |
+| Nach regulärem Stopp erneut öffnen: kein Wiederaufnahmepunkt erscheint                           |       |         |             |
 
 ## Optional: Lichtsteuerung
 

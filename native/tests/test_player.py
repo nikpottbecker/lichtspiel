@@ -4,6 +4,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -84,6 +85,28 @@ class MpvIpcTests(unittest.TestCase):
             player._watchdog_tick()
             self.assertEqual(player.state["status"], "error")
             self.assertIn("antwortet", player.state["message"])
+            self.wait_until(lambda: player.process.state() == QProcess.NotRunning)
+
+    def test_resume_loads_saved_clip_with_file_local_start(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            binary = Path(temporary) / "fake-mpv"
+            binary.write_text(FAKE_MPV, encoding="utf-8")
+            binary.chmod(0o755)
+            player = MpvPlayer()
+            items = [
+                {"path": "/tmp/spot.mp4", "duration": 30},
+                {"path": "/tmp/film.mp4", "duration": 90},
+            ]
+            with mock.patch.object(
+                player, "_command", wraps=player._command
+            ) as command:
+                player.start(str(binary), items, 0, start_index=1, start_position=12.5)
+                self.wait_until(lambda: player.state["status"] == "playing")
+                self.assertEqual(player.state["index"], 1)
+                command.assert_any_call(
+                    ["loadfile", "/tmp/film.mp4", "replace", -1, "start=12.500"]
+                )
+            player.stop()
             self.wait_until(lambda: player.process.state() == QProcess.NotRunning)
 
 

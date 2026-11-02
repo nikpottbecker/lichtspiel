@@ -20,18 +20,23 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 
 ## Stand des Umbaus
 
-| Bereich                                                   | Qt-Vorschau                                                                                    |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Projektdatei, Mediathek, Kategorien und geordneter Ablauf | Vorhandene Electron-Projektdatei wird gelesen und weiterverwendet                              |
-| mpv-Wiedergabe                                            | Separater Prozess mit asynchroner IPC; Pause, Fortsetzen, Schwarzbild, nächster Clip und Stopp |
-| Live-Regie                                                | Getrennte Balken für Clip und Gesamtablauf, Restzeiten und nächster Clip bleiben sichtbar      |
-| Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                        |
-| Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                            |
-| Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                  |
-| Home Assistant                                            | Mehrere Lampen, Szenen oder Helligkeit je Ereignis, optional Schwarzbild, Gerätesuche          |
-| Kleine Fenster                                            | Regietasten bleiben sichtbar, der Ablauf scrollt                                               |
+| Bereich                                                   | Qt-Vorschau                                                                                                             |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Projektdatei, Mediathek, Kategorien und geordneter Ablauf | Vorhandene Electron-Projektdatei wird gelesen und weiterverwendet                                                       |
+| mpv-Wiedergabe                                            | Separater Prozess mit asynchroner IPC; Pause, Fortsetzen, Schwarzbild, nächster Clip und Stopp                          |
+| Live-Regie                                                | Getrennte Balken für Clip und Gesamtablauf, Restzeiten und nächster Clip bleiben sichtbar                               |
+| Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                                                 |
+| Wiederaufnahme                                            | Letzter Clip und ungefähre Position werden lokal gespeichert; Fortsetzen erfordert einen Klick und erneute Startprüfung |
+| Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                                                     |
+| Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                                           |
+| Home Assistant                                            | Mehrere Lampen, Szenen oder Helligkeit je Ereignis, optional Schwarzbild, Gerätesuche                                   |
+| Kleine Fenster                                            | Regietasten bleiben sichtbar, der Ablauf scrollt                                                                        |
 
 Der Bildschirm wird für die Qt-Version als `nativeDisplayId` in `settings.json` gespeichert. Dadurch überschreibt sie die Electron-Bildschirmauswahl im gemeinsamen Projekt nicht. Öffne **nicht beide Apps gleichzeitig** mit demselben Projekt. Home-Assistant-Regeln können aus der bisherigen Konfiguration übernommen werden; das verschlüsselte Electron-Token ist nicht übertragbar. Gib es einmal in der Qt-App neu ein und aktiviere die Automatik dort ausdrücklich.
+
+Bei einer Unterbrechung merkt sich die Qt-App den Ablauf, den aktuellen Clip und etwa alle fünf Sekunden die Position in `show-recovery.json` im lokalen Konfigurationsverzeichnis. Nach einem Neustart bleibt die Leinwand aus. **An gespeicherter Stelle fortsetzen** prüft Dateien, Ablauf und gewählte Ausgabe erneut; ein veränderter Ablauf kann nicht versehentlich an einer anderen Stelle gestartet werden. **Verwerfen** erlaubt einen neuen Start. Ein regulärer Stopp oder das Ende der Vorstellung entfernt den Punkt. Beim bestätigten Schließen während der Wiedergabe bleibt er erhalten. Die Position kann nach einem Absturz um bis zu ungefähr fünf Sekunden zurückliegen; das ist kein vollständiges Vorführprotokoll.
+
+![Wiederaufnahme in der Qt-Regie bei kleinem Fenster](../docs/assets/native-recovery.png)
 
 Speichere auf der Lichtseite zuerst Adresse und Token mit ausgeschalteter Automatik. Danach kannst du **Lampen laden** und Ziele auswählen. Bis zu 20 `light.*`-Entitäten oder Lichtgruppen lassen sich gemeinsam dimmen. Jede Regel wählt entweder Helligkeit und Übergangszeit oder eine Home-Assistant-Szene; Szenen eignen sich für Farben und mehrere Räume. Die Schwarzbild-Regel ist standardmäßig **aus**. **Lampen laden** und **Verbindung prüfen** lesen nur Daten. Geänderte Regeln müssen vor einem Test gespeichert werden. Wiederholte Clips derselben Vorprogramm-Kategorie senden keinen doppelten Befehl; ausstehende ältere Automatikbefehle werden bei schnellen Wechseln verworfen. Fehler erscheinen ohne modales Fenster und stoppen den Film nicht.
 
