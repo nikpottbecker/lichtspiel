@@ -142,6 +142,9 @@ class MainWindow(QMainWindow):
         self.was_active = False
         self.preserve_recovery_on_close = False
         self.native_display_id = self._read_settings().get("nativeDisplayId", "")
+        self.native_onboarded = self._read_settings().get("nativeOnboarded") is True
+        self.projection_checked_screen = ""
+        self.projection_test_screen = ""
         self.mpv = ""
         self.player = MpvPlayer(self)
         self.projection = ProjectionTest(self)
@@ -181,9 +184,7 @@ class MainWindow(QMainWindow):
         self._refresh_all()
         self._refresh_recovery()
         self._set_page(
-            0
-            if self.project.get("onboarded") and self._selected_screen_index() >= 0
-            else 2
+            0 if self.native_onboarded and self._selected_screen_index() >= 0 else 2
         )
         self._detect_mpv()
 
@@ -197,7 +198,7 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError, AttributeError):
             return {}
 
-    def _save_setting(self, key: str, value: str | int):
+    def _save_setting(self, key: str, value: str | int | bool):
         settings = self._read_settings()
         settings[key] = value
         atomic_json(self.settings_path, settings)
@@ -533,6 +534,25 @@ class MainWindow(QMainWindow):
             "Bild & Ton",
             "Regie am Rechner, Film über einen eigenen Player auf der Leinwand.",
         )
+        self.onboarding_card = QFrame()
+        self.onboarding_card.setObjectName("onboardingCard")
+        guide = QVBoxLayout(self.onboarding_card)
+        guide.setContentsMargins(20, 16, 20, 18)
+        guide.setSpacing(8)
+        self.onboarding_steps = label(
+            "01 PLAYER   /   02 AUSGABE   /   03 TEST   /   04 MEDIEN", "eyebrow"
+        )
+        guide.addWidget(self.onboarding_steps)
+        self.onboarding_title = label("Erste Vorstellung einrichten", "sectionTitle")
+        guide.addWidget(self.onboarding_title)
+        self.onboarding_description = label("", "hint")
+        guide.addWidget(self.onboarding_description)
+        guide_row = QHBoxLayout()
+        self.onboarding_action = button("Weiter", self._onboarding_action, "primary")
+        guide_row.addWidget(self.onboarding_action)
+        guide_row.addStretch()
+        guide.addLayout(guide_row)
+        column.addWidget(self.onboarding_card)
         column.addWidget(label("WIEDERGABE", "eyebrow"))
         self.player_path = label("", "muted")
         column.addWidget(self.player_path)
@@ -553,6 +573,12 @@ class MainWindow(QMainWindow):
             "Testkarte auf dem Beamer zeigen", self._test_projection
         )
         column.addWidget(self.test_button)
+        self.projection_confirm = QCheckBox(
+            "Testkarte auf dem gewählten Beamer selbst geprüft"
+        )
+        self.projection_confirm.setEnabled(False)
+        self.projection_confirm.toggled.connect(self._update_onboarding)
+        column.addWidget(self.projection_confirm)
         column.addWidget(
             label(
                 "Die Testkarte läuft 12 Sekunden über mpv. Prüfe Rahmen, Ecken und Schärfe direkt am Beamer.",
@@ -1155,6 +1181,119 @@ class MainWindow(QMainWindow):
         self._refresh_lists()
         self._refresh_lighting()
         self._player_state(self.player.state)
+        self._update_onboarding()
+
+    def _onboarding_step(self) -> str:
+        if not self.mpv:
+            return "player"
+        if self._selected_screen_index() < 0:
+            return "display"
+        if (
+            not self.projection_confirm.isChecked()
+            or self.projection_checked_screen != self.native_display_id
+        ):
+            return "projection"
+        if not self.project["queue"]:
+            return "media"
+        return "ready"
+
+    def _update_onboarding(self, _checked=None):
+        self.onboarding_card.setVisible(not self.native_onboarded)
+        if self.native_onboarded:
+            return
+        step = self._onboarding_step()
+        copy = {
+            "player": (
+                "01 / 04 · Player",
+                "Installiere mpv und wähle die ausführbare Datei. Lichtspiel sucht bereits automatisch danach.",
+                "mpv auswählen",
+            ),
+            "display": (
+                "02 / 04 · Leinwand",
+                "Wähle den Beamer als erweiterten Bildschirm. Die Regie bleibt auf deinem Rechner.",
+                "Ausgabe wählen",
+            ),
+            "projection": (
+                "03 / 04 · Bild prüfen",
+                "Zeige die Testkarte und bestätige erst danach, dass sie auf dem richtigen Beamer vollständig sichtbar war.",
+                "Bild am Beamer geprüft"
+                if self.projection_checked_screen == self.native_display_id
+                else "Testkarte zeigen",
+            ),
+            "media": (
+                "04 / 04 · Ablauf anlegen",
+                "Importiere mindestens einen Clip. Ton und Bild solltest du anschließend mit einem kurzen Clip prüfen.",
+                "Medien hinzufügen",
+            ),
+            "ready": (
+                "Bereit für die Regie",
+                "Player, Ausgabebildschirm und Sichtprüfung sind erfasst. Die Medien werden vor dem Abschluss nochmals geprüft.",
+                "Einrichtung abschließen",
+            ),
+        }
+        title, description, action = copy[step]
+        self.onboarding_title.setText(title)
+        self.onboarding_description.setText(description)
+        self.onboarding_action.setText(action)
+        self.onboarding_action.setEnabled(
+            step != "projection"
+            or self.projection_checked_screen == self.native_display_id
+            or not self.projection.active()
+        )
+
+    def _onboarding_action(self):
+        step = self._onboarding_step()
+        if step == "player":
+            self._choose_mpv()
+        elif step == "display":
+            self.display_combo.setFocus()
+            self.pages.currentWidget().ensureWidgetVisible(self.display_combo)
+        elif step == "projection":
+            if self.projection_checked_screen == self.native_display_id:
+                self.projection_confirm.setChecked(True)
+            else:
+                self._test_projection()
+        elif step == "media":
+            self._set_page(1)
+            self._import_media()
+        else:
+            self._finish_onboarding()
+
+    def _finish_onboarding(self):
+        if self._onboarding_step() != "ready" or self.native_onboarded:
+            return
+        screen = self.native_display_id
+        binary = self.mpv
+        queue = list(self.project["queue"])
+        self.onboarding_action.setEnabled(False)
+        self.onboarding_description.setText("Medien werden geprüft …")
+        future = self.executor.submit(preflight, deepcopy(self.project))
+
+        def complete(_items):
+            if (
+                self.native_display_id != screen
+                or self.mpv != binary
+                or self.project["queue"] != queue
+                or self._onboarding_step() != "ready"
+            ):
+                raise RuntimeError("Einrichtung wurde während der Prüfung geändert.")
+            self._save_setting("nativeOnboarded", True)
+            self.native_onboarded = True
+            self._update_onboarding()
+            self._set_page(0)
+            self.status.setText(
+                "Einrichtung abgeschlossen. Prüfe vor der Vorführung Bild und Ton mit einem kurzen Clip."
+            )
+
+        def failed(error):
+            self._update_onboarding()
+            self.onboarding_action.setEnabled(True)
+            self.onboarding_description.setText(
+                f"Einrichtung noch nicht abgeschlossen: {error}"
+            )
+            self.status.setText(str(error))
+
+        self.jobs.append((future, complete, failed))
 
     def _screens(self):
         from PySide6.QtGui import QGuiApplication
@@ -1223,9 +1362,11 @@ class MainWindow(QMainWindow):
     def _display_changed(self, _index):
         self.native_display_id = self.display_combo.currentData() or ""
         self._save_setting("nativeDisplayId", self.native_display_id)
-        self.project["onboarded"] = bool(self.native_display_id and self.mpv)
-        self._save()
+        self.projection_confirm.setChecked(False)
+        self.projection_confirm.setEnabled(False)
+        self.projection_checked_screen = ""
         self._display_info()
+        self._update_onboarding()
 
     def _audio_changed(self, _index):
         self.project["audioDevice"] = self.audio_combo.currentData() or "auto"
@@ -1286,6 +1427,7 @@ class MainWindow(QMainWindow):
         self._library_selection(self.library_list.currentRow())
         self.readiness.setText("Ablauf geändert · Startprüfung erneut ausführen")
         self._refresh_recovery()
+        self._update_onboarding()
 
     @staticmethod
     def _duration(seconds) -> str:
@@ -1419,6 +1561,10 @@ class MainWindow(QMainWindow):
                 raise ValueError(
                     "Das ausgewählte Programm ist kein funktionierender mpv-Player."
                 )
+            if self.mpv != found:
+                self.projection_confirm.setChecked(False)
+                self.projection_confirm.setEnabled(False)
+                self.projection_checked_screen = ""
             self.mpv = found
             self._save_setting("mpvPath", found)
             self._refresh_all()
@@ -1431,6 +1577,10 @@ class MainWindow(QMainWindow):
         future = self.executor.submit(find_mpv, self._saved_mpv_path())
 
         def complete(found):
+            if self.mpv != found:
+                self.projection_confirm.setChecked(False)
+                self.projection_confirm.setEnabled(False)
+                self.projection_checked_screen = ""
             self.mpv = found
             self._refresh_all()
             self.status.setText(
@@ -1449,15 +1599,30 @@ class MainWindow(QMainWindow):
             return
         try:
             self.projection.start(self.mpv, index)
+            self.projection_test_screen = self.native_display_id
+            self.projection_confirm.setChecked(False)
+            self.projection_confirm.setEnabled(False)
+            self.projection_checked_screen = ""
+            self.display_combo.setEnabled(False)
             self._sync_wake()
             self.test_button.setEnabled(False)
             self.status.setText("Testkarte wird 12 Sekunden auf der Ausgabe gezeigt.")
+            self._update_onboarding()
         except RuntimeError as error:
             self._error(str(error))
 
     def _projection_finished(self, ok: bool, message: str):
+        self.display_combo.setEnabled(True)
+        if ok and self.projection_test_screen == self.native_display_id:
+            self.projection_checked_screen = self.native_display_id
+            self.projection_confirm.setEnabled(True)
+        else:
+            self.projection_checked_screen = ""
+            self.projection_confirm.setChecked(False)
+            self.projection_confirm.setEnabled(False)
         self._sync_wake()
         self._display_info()
+        self._update_onboarding()
         self.status.setText(
             "Ausgabetest beendet. Prüfe das Bild am Beamer selbst."
             if ok

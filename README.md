@@ -37,11 +37,11 @@ Für Heimkinos, Vereine und eigene Filmprojekte. Lokal auf deinem Rechner, ohne 
 **Native Desktop-Vorschau:** Der Umbau auf eine Oberfläche aus Qt Widgets läuft. Sie verwendet keinen Chromium-Renderer; mpv bleibt der getrennte Player für die Leinwand. [Start, Funktionen und Grenzen der Qt-Version →](native/README.md)
 
 <p align="center">
-  <img src="docs/assets/native-preview.png" alt="Native Lichtspiel-Regie mit Leinwandvorschau, Ablauf und Vorführtasten" width="100%">
+  <img src="docs/assets/native-regie-live.png" alt="Native Lichtspiel-Regie mit laufendem Ablauf, Kontrollbild und Vorführtasten" width="100%">
 </p>
 
 <p align="center">
-  <img src="docs/assets/native-setup.png" alt="Bild- und Tonausgabe in der nativen Lichtspiel-App" width="100%">
+  <img src="docs/assets/native-onboarding.png" alt="Geführte Einrichtung in der nativen Lichtspiel-App" width="100%">
 </p>
 <p align="center"><sub>Native Qt-App unter Linux aufgenommen. Echte Bildschirme, Ton und Beamer müssen am jeweiligen Vorführrechner geprüft werden.</sub></p>
 

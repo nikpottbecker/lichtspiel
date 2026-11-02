@@ -33,16 +33,18 @@ Für die erste Installation werden Pakete heruntergeladen. Die lokale Wiedergabe
 ## 2. Beamer und Ton verbinden
 
 1. Beamer anschließen und in den Betriebssystemeinstellungen **erweiterten Desktop** wählen.
-2. Lichtspiel öffnen und einen Namen für die Vorstellung eingeben.
-3. In **Bild & Ton** prüfen, ob mpv erkannt wurde. Andernfalls **mpv auswählen** verwenden.
-4. Den Beamer als Wiedergabebildschirm auswählen. Nach dem Anschließen eines neuen Geräts **Neu erkennen** verwenden.
+2. Lichtspiel öffnen. Die native App beginnt mit der geführten Einrichtung unter **Bild & Ton**.
+3. Prüfen, ob mpv erkannt wurde. Andernfalls **mpv auswählen** verwenden.
+4. Den Beamer als Wiedergabebildschirm auswählen. Nach dem Anschließen eines neuen Geräts die Ausgabeliste erneut prüfen.
 5. Die gewünschte Tonausgabe auswählen.
 
 Klicke nach der Bildschirmauswahl auf **Testkarte auf dem Beamer zeigen**. Die Desktop-App zeigt sie 12 Sekunden lang über denselben mpv-Ausgabeweg wie den Film. Prüfe direkt am Beamer den äußeren Rahmen, alle vier Ecken, Kreisform, Schärfelinien und Farbbalken. Die Bildschirmreihenfolge von Betriebssystem und Player kann sich je nach Aufbau unterscheiden; die Testkarte macht eine falsche Zuordnung sichtbar.
 
+Bestätige die Sichtprüfung in der App. Füge danach Medien hinzu und wähle **Einrichtung abschließen**. Lichtspiel prüft dabei alle Dateien im Ablauf erneut. Einen Namen für die Vorstellung kannst du anschließend in der **Regie** eingeben.
+
 Spiele danach einen kurzen Clip ab und prüfe Bildbewegung sowie Ton am richtigen HDMI-Gerät oder Audiointerface. Die Testkarte ist stumm und beweist weder die Qualität eines Filmcodecs noch die Audioausgabe.
 
-![Native Einrichtung für Beamer und Tonausgabe](assets/native-setup.png)
+![Geführte Einrichtung für Beamer und Tonausgabe](assets/native-onboarding.png)
 
 ## 3. Den Ablauf erstellen
 

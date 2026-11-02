@@ -48,6 +48,7 @@ QListWidget::item:selected { background: #4a4a4a; color: #ffffff; border-radius:
 QFrame#rule { background: #353535; border: none; max-height: 1px; }
 QFrame#liveCard { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #262626, stop:1 #1c1c1c); border: 1px solid #5b5b5b; border-radius: 14px; }
 QFrame#stageCard, QFrame#recoveryCard { background: rgba(30, 30, 30, 238); border: 1px solid #525252; border-radius: 14px; }
+QFrame#onboardingCard { background: #202020; border: 1px solid #6a6a6a; border-radius: 14px; }
 QFrame#ruleCard { background: #202020; border: 1px solid #3d3d3d; border-radius: 10px; }
 QCheckBox { spacing: 9px; background: transparent; }
 QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #898989; border-radius: 4px; background: #1d1d1d; }

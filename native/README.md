@@ -29,6 +29,7 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 | Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                                                                                                            |
 | Wiederaufnahme                                            | Letzter Clip und ungefähre Position werden lokal gespeichert; Fortsetzen erfordert einen Klick und erneute Startprüfung                                                            |
 | Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                                                                                                                |
+| Erste Einrichtung                                         | Vier geführte Schritte für Player, Ausgabe, Sichtprüfung und Medien; Abschluss erst nach Dateiprüfung                                                                              |
 | Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                                                                                                      |
 | Home Assistant                                            | Mehrere Lampen, Szenen oder Helligkeit je Ereignis, optional Schwarzbild, Gerätesuche                                                                                              |
 | 2D-Lichtplan                                              | Verschiebbare Marker für gespeicherte Lampen, optional eigener Grundriss als lokales Bild                                                                                          |
@@ -57,6 +58,12 @@ Während einer Vorstellung rückt die Regieseite den laufenden Ablauf nach oben.
 ![Leere Mediathek mit direktem Medienimport](../docs/assets/native-library.png)
 
 ![Bild- und Tonausgabe in der nativen Einrichtung](../docs/assets/native-setup.png)
+
+Bei der ersten Nutzung führt **Bild & Ton** durch Player, Ausgabebildschirm, Testkarte und Medienimport. Die Testkarte muss nach erfolgreichem Lauf auf dem gewählten Beamer selbst bestätigt werden. Ein Beamer- oder Playerwechsel setzt diese Bestätigung während der Einrichtung zurück. Der Abschluss prüft, ob alle Medien im Ablauf noch lesbar sind, und wird für die native App getrennt vom bisherigen Electron-Projektzustand gespeichert. Die Testkarte enthält keinen Ton; ein kurzer Clip mit der echten Audioverbindung bleibt als manuelle Prüfung nötig.
+
+![Geführte native Einrichtung](../docs/assets/native-onboarding.png)
+
+![Geführte native Einrichtung im kleinen Fenster](../docs/assets/native-onboarding-small.png)
 
 ![Vergrößerte Kontrollvorschau mit Testkarte](../docs/assets/native-preview-large.png)
 

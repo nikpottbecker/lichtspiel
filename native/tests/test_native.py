@@ -88,6 +88,92 @@ class NativeWindowTests(unittest.TestCase):
             self.assertEqual(window.pages.currentIndex(), 2)
             window.close()
 
+    def test_onboarding_requires_visible_projection_check_and_valid_media(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            media = directory / "clip.mp4"
+            media.write_bytes(b"video")
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project",
+                    return_value=empty_project(),
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory", return_value=directory
+                ),
+                mock.patch.object(MainWindow, "_detect_mpv"),
+            ):
+                window = MainWindow()
+                self.assertEqual(window.pages.currentIndex(), 2)
+                self.assertEqual(window._onboarding_step(), "player")
+                window.mpv = "/test/mpv"
+                window._update_onboarding()
+                self.assertEqual(window._onboarding_step(), "display")
+                window.display_combo.setCurrentIndex(1)
+                self.assertEqual(window._onboarding_step(), "projection")
+                window.projection_test_screen = window.native_display_id
+                window._projection_finished(True, "")
+                self.assertTrue(window.projection_confirm.isEnabled())
+                self.assertEqual(window._onboarding_step(), "projection")
+                window.projection_confirm.setChecked(True)
+                self.assertEqual(window._onboarding_step(), "media")
+                window.project["library"] = [
+                    {
+                        "id": "clip",
+                        "name": "Clip",
+                        "path": str(media),
+                        "duration": 10,
+                        "category": "Film",
+                    }
+                ]
+                window.project["queue"] = ["clip"]
+                window._refresh_lists()
+                self.assertEqual(window._onboarding_step(), "ready")
+                media.unlink()
+                window._finish_onboarding()
+                with self.assertRaises(ValueError):
+                    window.jobs[-1][0].result(timeout=2)
+                window._poll_jobs()
+                self.assertFalse(window.native_onboarded)
+                self.assertIn("fehlt", window.onboarding_description.text())
+                media.write_bytes(b"video")
+                window._finish_onboarding()
+                window.jobs[-1][0].result(timeout=2)
+                window._poll_jobs()
+                self.assertTrue(window.native_onboarded)
+                self.assertEqual(window.pages.currentIndex(), 0)
+                self.assertTrue(
+                    json.loads((directory / "settings.json").read_text())[
+                        "nativeOnboarded"
+                    ]
+                )
+                self.assertFalse(window.project["onboarded"])
+                window.close()
+
+    def test_onboarding_rechecks_projection_when_display_changes(self):
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            mock.patch(
+                "native.lichtspiel.window.load_project", return_value=empty_project()
+            ),
+            mock.patch(
+                "native.lichtspiel.window.data_directory",
+                return_value=Path(temporary),
+            ),
+            mock.patch.object(MainWindow, "_detect_mpv"),
+        ):
+            window = MainWindow()
+            window.mpv = "/test/mpv"
+            window.display_combo.setCurrentIndex(1)
+            window.projection_test_screen = window.native_display_id
+            window._projection_finished(True, "")
+            window.projection_confirm.setChecked(True)
+            window.display_combo.setCurrentIndex(0)
+            self.assertFalse(window.projection_confirm.isChecked())
+            self.assertFalse(window.projection_confirm.isEnabled())
+            self.assertEqual(window._onboarding_step(), "display")
+            window.close()
+
     def test_short_page_does_not_inherit_lighting_scrollbar(self):
         with mock.patch(
             "native.lichtspiel.window.load_project", return_value=empty_project()
