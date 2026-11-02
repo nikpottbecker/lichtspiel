@@ -23,8 +23,10 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QStackedWidget,
     QVBoxLayout,
@@ -32,7 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from .awake import WakeGuard
-from .lighting import EVENTS, LABELS, LightingController
+from .lighting import EVENTS, LABELS, LightingController, normalize_config
 from .model import (
     atomic_json,
     data_directory,
@@ -42,7 +44,9 @@ from .model import (
     save_project,
 )
 from .player import MpvPlayer, ProjectionTest, audio_devices, find_mpv, probe_duration
+from .progress import clock, timing
 from .style import STYLESHEET
+from .widgets import ElidedLabel
 
 VIDEO_FILTER = "Videodateien (*.mp4 *.m4v *.mov *.mkv *.webm *.avi *.mpg *.mpeg)"
 CATEGORIES = ("Werbung", "Trailer", "Intro", "Film")
@@ -247,15 +251,62 @@ class MainWindow(QMainWindow):
         column.addWidget(self.readiness)
         column.addWidget(button("Jetzt prüfen", self._check_readiness))
         column.addWidget(rule())
-        self.current_cue = label("Keine Vorstellung läuft.", "sectionTitle")
-        self.progress = label("", "muted")
         self.transport_surface = QWidget()
         self.transport_surface.setObjectName("transportSurface")
         transport_column = QVBoxLayout(self.transport_surface)
         transport_column.setContentsMargins(0, 12, 0, 0)
-        transport_column.setSpacing(8)
-        transport_column.addWidget(self.current_cue)
-        transport_column.addWidget(self.progress)
+        transport_column.setSpacing(10)
+        live_card = QFrame()
+        live_card.setObjectName("liveCard")
+        live = QVBoxLayout(live_card)
+        live.setContentsMargins(18, 15, 18, 16)
+        live.setSpacing(7)
+        live_header = QHBoxLayout()
+        self.cue_context = label("LEINWAND · BEREIT", "eyebrow")
+        self.next_cue = ElidedLabel("NÄCHSTER CLIP · —", "eyebrow")
+        self.cue_context.setWordWrap(False)
+        self.cue_context.setMaximumWidth(240)
+        self.next_cue.setFixedWidth(220)
+        self.next_cue.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        self.next_cue.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        live_header.addWidget(self.cue_context)
+        live_header.addStretch()
+        live_header.addWidget(self.next_cue)
+        live.addLayout(live_header)
+        self.current_cue = ElidedLabel("Keine Vorstellung läuft.", "liveTitle")
+        live.addWidget(self.current_cue)
+        self.clip_progress = QProgressBar()
+        self.clip_progress.setObjectName("clipProgress")
+        self.clip_progress.setRange(0, 1000)
+        self.clip_progress.setTextVisible(False)
+        self.clip_progress.setAccessibleName("Fortschritt des aktuellen Clips")
+        live.addWidget(self.clip_progress)
+        clip_times = QHBoxLayout()
+        self.clip_elapsed = label("00:00 / 00:00", "timePrimary")
+        self.clip_remaining = label("Noch 00:00", "timeSecondary")
+        self.clip_elapsed.setWordWrap(False)
+        self.clip_remaining.setWordWrap(False)
+        clip_times.addWidget(self.clip_elapsed)
+        clip_times.addStretch()
+        clip_times.addWidget(self.clip_remaining)
+        live.addLayout(clip_times)
+        live.addSpacing(3)
+        self.show_progress = QProgressBar()
+        self.show_progress.setObjectName("showProgress")
+        self.show_progress.setRange(0, 1000)
+        self.show_progress.setTextVisible(False)
+        self.show_progress.setAccessibleName("Fortschritt der gesamten Vorstellung")
+        live.addWidget(self.show_progress)
+        show_times = QHBoxLayout()
+        self.show_elapsed = label("GESAMTABLAUF · 00:00 / 00:00", "timeSecondary")
+        self.show_remaining = label("Noch 00:00", "timeSecondary")
+        self.show_elapsed.setWordWrap(False)
+        self.show_remaining.setWordWrap(False)
+        show_times.addWidget(self.show_elapsed)
+        show_times.addStretch()
+        show_times.addWidget(self.show_remaining)
+        live.addLayout(show_times)
+        transport_column.addWidget(live_card)
         transport = QGridLayout()
         transport.setHorizontalSpacing(10)
         transport.setVerticalSpacing(10)
@@ -377,12 +428,21 @@ class MainWindow(QMainWindow):
         self.light_enabled = QCheckBox("Automatische Lichtsteuerung aktivieren")
         column.addWidget(self.light_enabled)
         column.addWidget(label("HOME ASSISTANT", "eyebrow"))
+        self.light_feedback = label("Automatik ausgeschaltet", "hint")
+        column.addWidget(self.light_feedback)
         self.light_url = QLineEdit()
         self.light_url.setPlaceholderText("http://homeassistant.local:8123")
         column.addWidget(self.light_url)
         self.light_entity = QLineEdit()
-        self.light_entity.setPlaceholderText("light.kinosaal")
+        self.light_entity.setPlaceholderText("light.kinosaal, light.wand")
         column.addWidget(self.light_entity)
+        discover_row = QHBoxLayout()
+        self.light_discovered = QComboBox()
+        self.light_discovered.addItem("Lampen aus Home Assistant laden", "")
+        discover_row.addWidget(self.light_discovered, 1)
+        discover_row.addWidget(button("Lampen laden", self._discover_lights))
+        discover_row.addWidget(button("Hinzufügen", self._add_discovered_light))
+        column.addLayout(discover_row)
         self.light_token = QLineEdit()
         self.light_token.setEchoMode(QLineEdit.Password)
         self.light_token.setPlaceholderText(
@@ -390,32 +450,69 @@ class MainWindow(QMainWindow):
         )
         column.addWidget(self.light_token)
         row = QHBoxLayout()
-        row.addWidget(button("Einstellungen speichern", self._save_lighting, "primary"))
+        self.save_light_button = button(
+            "Einstellungen speichern", self._save_lighting, "primary"
+        )
+        row.addWidget(self.save_light_button)
         row.addWidget(button("Verbindung prüfen", self._test_lighting_connection))
         row.addWidget(button("Token löschen", self._clear_light_token))
         row.addStretch()
         column.addLayout(row)
+        column.addWidget(
+            label(
+                "Zuerst Adresse und Token mit ausgeschalteter Automatik speichern. Danach Lampen laden, Regeln wählen und erneut speichern.",
+                "hint",
+            )
+        )
         column.addWidget(rule())
         column.addWidget(label("LICHTREGELN", "eyebrow"))
         self.light_rules = {}
         for event in EVENTS:
-            line = QHBoxLayout()
+            card = QFrame()
+            card.setObjectName("ruleCard")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 10, 14, 10)
+            card_layout.setSpacing(8)
+            header = QHBoxLayout()
             enabled = QCheckBox(LABELS[event])
-            enabled.setMinimumWidth(145)
+            mode = QComboBox()
+            mode.addItem("Helligkeit", "brightness")
+            mode.addItem("Szene", "scene")
+            mode.setFixedWidth(130)
+            header.addWidget(enabled)
+            header.addStretch()
+            header.addWidget(mode)
+            card_layout.addLayout(header)
+            options = QHBoxLayout()
+            brightness_label = label("Zielhelligkeit", "muted")
             brightness = QSpinBox()
             brightness.setRange(0, 100)
             brightness.setSuffix(" %")
+            scene = QLineEdit()
+            scene.setPlaceholderText("scene.filmstart")
+            scene.setMinimumWidth(170)
             transition = QSpinBox()
             transition.setRange(0, 120)
             transition.setSuffix(" s")
-            line.addWidget(enabled)
-            line.addStretch()
-            line.addWidget(label("Helligkeit", "muted"))
-            line.addWidget(brightness)
-            line.addWidget(label("Übergang", "muted"))
-            line.addWidget(transition)
-            column.addLayout(line)
-            self.light_rules[event] = (enabled, brightness, transition)
+            options.addWidget(brightness_label)
+            options.addWidget(brightness)
+            options.addWidget(scene, 1)
+            options.addStretch()
+            options.addWidget(label("Übergang", "muted"))
+            options.addWidget(transition)
+            card_layout.addLayout(options)
+            column.addWidget(card)
+            self.light_rules[event] = (
+                enabled,
+                mode,
+                brightness_label,
+                brightness,
+                transition,
+                scene,
+            )
+            mode.currentIndexChanged.connect(
+                lambda _index, selected=event: self._sync_rule_inputs(selected)
+            )
         column.addWidget(rule())
         test_row = QHBoxLayout()
         self.light_event = QComboBox()
@@ -431,65 +528,195 @@ class MainWindow(QMainWindow):
                 "hint",
             )
         )
+        self.light_preview = label("Gespeicherte Regel: keine Aktion", "hint")
+        column.addWidget(self.light_preview)
+        self.light_event.currentIndexChanged.connect(self._update_light_preview)
         column.addStretch()
+
+    def _sync_rule_inputs(self, event: str):
+        _enabled, mode, brightness_label, brightness, _transition, scene = (
+            self.light_rules[event]
+        )
+        uses_scene = mode.currentData() == "scene"
+        brightness_label.setVisible(not uses_scene)
+        brightness.setVisible(not uses_scene)
+        scene.setVisible(uses_scene)
 
     def _refresh_lighting(self):
         config = self.lighting.config
         self.light_enabled.setChecked(config["enabled"])
         self.light_url.setText(config["baseUrl"])
-        self.light_entity.setText(config["entityId"])
-        for event, (enabled, brightness, transition) in self.light_rules.items():
+        self.light_entity.setText(", ".join(config["entityIds"]))
+        for event, (
+            enabled,
+            mode,
+            _brightness_label,
+            brightness,
+            transition,
+            scene,
+        ) in self.light_rules.items():
             rule = config["rules"][event]
             enabled.setChecked(rule["enabled"])
+            mode.setCurrentIndex(mode.findData(rule["mode"]))
             brightness.setValue(rule["brightness"])
             transition.setValue(rule["transition"])
+            scene.setText(rule["sceneId"])
+            self._sync_rule_inputs(event)
+        self.light_feedback.setText(
+            "Automatik aktiv · Änderungen erst nach Speichern wirksam"
+            if config["enabled"]
+            else "Automatik ausgeschaltet · Änderungen erst nach Speichern wirksam"
+        )
+        self._update_light_preview()
 
     def _lighting_input(self) -> dict:
         return {
             "enabled": self.light_enabled.isChecked(),
             "baseUrl": self.light_url.text().strip(),
-            "entityId": self.light_entity.text().strip(),
+            "entityIds": [
+                value.strip()
+                for value in self.light_entity.text().split(",")
+                if value.strip()
+            ],
             "rules": {
                 event: {
                     "enabled": enabled.isChecked(),
+                    "mode": mode.currentData(),
                     "brightness": brightness.value(),
                     "transition": transition.value(),
+                    "sceneId": scene.text().strip(),
                 }
-                for event, (enabled, brightness, transition) in self.light_rules.items()
+                for event, (
+                    enabled,
+                    mode,
+                    _brightness_label,
+                    brightness,
+                    transition,
+                    scene,
+                ) in self.light_rules.items()
             },
         }
 
     def _save_lighting(self):
+        if self.player.active():
+            self.light_feedback.setText(
+                "Während der Vorstellung keine Regeländerung speichern."
+            )
+            return
+        self.lighting.cancel_pending_auto()
         future = self.lighting.executor.submit(
             self.lighting.save, self._lighting_input(), self.light_token.text()
         )
 
         def complete(_config):
             self.light_token.clear()
+            self._refresh_lighting()
             self.status.setText("Lichteinstellungen gespeichert.")
 
-        self.jobs.append((future, complete))
+        self._queue_light_job(future, complete)
 
     def _test_lighting_connection(self):
+        if self._light_changes_pending():
+            return
         future = self.lighting.executor.submit(self.lighting.test_connection)
-        self.jobs.append((future, self.status.setText))
+        self._queue_light_job(future, self._light_success)
+
+    def _discover_lights(self):
+        if self._light_changes_pending():
+            return
+        self.light_feedback.setText("Lampen werden gelesen …")
+        future = self.lighting.executor.submit(self.lighting.discover_lights)
+
+        def complete(devices):
+            self.light_discovered.clear()
+            self.light_discovered.addItem("Lampe auswählen", "")
+            for entity_id, name in devices:
+                self.light_discovered.addItem(f"{name} · {entity_id}", entity_id)
+            self.light_feedback.setText(
+                f"{len(devices)} Lampen oder Lichtgruppen gefunden."
+            )
+
+        self._queue_light_job(future, complete)
+
+    def _add_discovered_light(self):
+        entity_id = self.light_discovered.currentData()
+        if not entity_id:
+            return
+        selected = [
+            value.strip()
+            for value in self.light_entity.text().split(",")
+            if value.strip()
+        ]
+        if entity_id not in selected:
+            selected.append(entity_id)
+        self.light_entity.setText(", ".join(selected))
+        self.light_feedback.setText(
+            "Lampe hinzugefügt · Änderungen speichern, damit sie wirksam werden."
+        )
+
+    def _update_light_preview(self, _index=None):
+        event = self.light_event.currentData()
+        if event not in EVENTS:
+            return
+        rule = self.lighting.config["rules"][event]
+        if not rule["enabled"]:
+            description = "deaktiviert"
+        elif rule["mode"] == "scene":
+            description = f"Szene {rule['sceneId']} · Übergang {rule['transition']} s"
+        else:
+            count = len(self.lighting.config["entityIds"])
+            description = (
+                f"{rule['brightness']} % · {rule['transition']} s · {count} Lampe(n)"
+            )
+        self.light_preview.setText(
+            f"Gespeicherte Regel · {LABELS[event]}: {description}"
+        )
+
+    def _light_success(self, message):
+        if message:
+            self.light_feedback.setText(message)
+            self.status.setText(message)
+
+    def _light_error(self, error: Exception):
+        message = f"Licht: {error}"
+        if self.player.active():
+            message += " · Die Filmwiedergabe läuft weiter."
+        self.light_feedback.setText(message)
+        self.status.setText(message)
+
+    def _queue_light_job(self, future, complete):
+        self.jobs.append((future, complete, self._light_error))
+
+    def _light_changes_pending(self) -> bool:
+        try:
+            pending = normalize_config(
+                self._lighting_input()
+            ) != self.lighting.config or bool(self.light_token.text().strip())
+        except (ValueError, TypeError) as error:
+            self.light_feedback.setText(str(error))
+            return True
+        if pending:
+            self.light_feedback.setText(
+                "Bitte zuerst die geänderten Lichteinstellungen speichern."
+            )
+        return pending
 
     def _apply_light_manually(self):
         event = self.light_event.currentData()
+        if self._light_changes_pending():
+            return
         if not self.lighting.config["enabled"]:
             self._error("Aktiviere und speichere zuerst die Lichtsteuerung.")
             return
+        self.lighting.cancel_pending_auto()
         future = self.lighting.executor.submit(self.lighting.apply, event)
-        self.jobs.append(
-            (
-                future,
-                lambda message: self.status.setText(
-                    message or "Lichtregel deaktiviert."
-                ),
-            )
+        self._queue_light_job(
+            future,
+            lambda message: self._light_success(message or "Lichtregel deaktiviert."),
         )
 
     def _clear_light_token(self):
+        self.lighting.cancel_pending_auto()
         future = self.lighting.executor.submit(self.lighting.clear_token)
 
         def complete(_result):
@@ -499,7 +726,7 @@ class MainWindow(QMainWindow):
                 "Token entfernt; automatische Lichtsteuerung deaktiviert."
             )
 
-        self.jobs.append((future, complete))
+        self._queue_light_job(future, complete)
 
     def _set_page(self, index: int):
         self.pages.setCurrentIndex(index)
@@ -821,13 +1048,17 @@ class MainWindow(QMainWindow):
         self.jobs.append((future, complete))
 
     def _poll_jobs(self):
-        for future, complete in list(self.jobs):
+        for job in list(self.jobs):
+            future, complete, *on_error = job
             if not future.done():
                 continue
-            self.jobs.remove((future, complete))
+            self.jobs.remove(job)
             try:
                 complete(future.result())
             except Exception as error:  # noqa: BLE001 - show any worker or OS error in the UI.
+                if on_error:
+                    on_error[0](error)
+                    continue
                 self.import_button.setEnabled(True)
                 self.start_button.setEnabled(True)
                 self.readiness.setText(str(error))
@@ -876,13 +1107,13 @@ class MainWindow(QMainWindow):
     def _player_state(self, state: dict):
         status = state["status"]
         active = status in ("starting", "playing", "paused", "blackout")
+        measure = timing(state, self.player.items)
         self._sync_wake()
         light_event = self.lighting.observe(state, self.player.items)
         if light_event:
-            future = self.lighting.executor.submit(self.lighting.apply, light_event)
-            self.jobs.append(
-                (future, lambda message: self.status.setText(message or ""))
-            )
+            future = self.lighting.submit_auto(light_event)
+            self._queue_light_job(future, self._light_success)
+        self.save_light_button.setEnabled(not active)
         self.start_button.setEnabled(not active)
         self.pause_button.setEnabled(status == "playing")
         self.resume_button.setEnabled(status in ("paused", "blackout"))
@@ -891,28 +1122,57 @@ class MainWindow(QMainWindow):
         self.stop_button.setEnabled(active)
         for control in (self.move_up, self.move_down, self.remove_queue):
             control.setEnabled(not active)
-        if active and state["index"] < len(self.player.items):
+        if active and measure["index"] < len(self.player.items):
             media = self.player.items[state["index"]]
-            self.current_cue.setText(
-                f"{media.get('category', 'Film')}  ·  {media.get('name', '')}"
+            full_title = f"{media.get('category', 'Film')}  ·  {media.get('name', '')}"
+            self.current_cue.set_full_text(full_title)
+            self.cue_context.setText(
+                f"LEINWAND · {state['index'] + 1:02d} / {len(self.player.items):02d} · {self._playback_label(status)}"
             )
-            self.progress.setText(
-                f"{self._duration(state['position'])} / {self._duration(state['duration'])}  ·  {status}"
-                + (
-                    f"  ·  Danach: {self.player.items[state['index'] + 1].get('name', '')}"
-                    if state["index"] + 1 < len(self.player.items)
-                    else "  ·  Letzter Clip"
-                )
+            next_text = (
+                f"DANACH · {self.player.items[state['index'] + 1].get('name', '')}"
+                if state["index"] + 1 < len(self.player.items)
+                else "DANACH · ENDE"
             )
+            self.next_cue.set_full_text(next_text)
+            if self.queue_list.currentRow() != state["index"]:
+                self.queue_list.setCurrentRow(state["index"])
         else:
-            self.current_cue.setText(
-                "Keine Vorstellung läuft." if status == "idle" else status.title()
+            self.current_cue.set_full_text(
+                "Vorstellung bereit"
+                if status == "idle"
+                else "Vorstellung beendet"
+                if status == "finished"
+                else "Wiedergabefehler"
             )
-            self.progress.setText("")
+            self.cue_context.setText(f"LEINWAND · {self._playback_label(status)}")
+            self.next_cue.set_full_text("DANACH · —")
+        self.clip_progress.setValue(round(measure["clip_fraction"] * 1000))
+        self.show_progress.setValue(round(measure["show_fraction"] * 1000))
+        self.clip_elapsed.setText(
+            f"{clock(measure['position'])} / {clock(measure['duration'])}"
+        )
+        self.clip_remaining.setText(f"Noch {clock(measure['clip_remaining'])}")
+        self.show_elapsed.setText(
+            f"GESAMTABLAUF · {clock(measure['elapsed'])} / {clock(measure['total'])}"
+        )
+        self.show_remaining.setText(f"Noch {clock(measure['show_remaining'])}")
         if status == "error":
             self.status.setText(state.get("message") or "Playerfehler")
         elif status == "finished":
             self.status.setText("Vorstellung beendet.")
+
+    @staticmethod
+    def _playback_label(status: str) -> str:
+        return {
+            "idle": "BEREIT",
+            "starting": "STARTET",
+            "playing": "LÄUFT",
+            "paused": "PAUSE",
+            "blackout": "SCHWARZBILD",
+            "finished": "BEENDET",
+            "error": "FEHLER",
+        }.get(status, status.upper())
 
     def _control(self, action):
         try:

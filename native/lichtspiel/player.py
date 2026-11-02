@@ -341,7 +341,12 @@ class MpvPlayer(QObject):
         if index >= len(self.items):
             duration = self.state["duration"]
             self.stop()
-            self._update(status="finished", position=duration)
+            self._update(
+                status="finished",
+                index=len(self.items) - 1,
+                position=duration,
+                duration=duration,
+            )
             return
         status = self.state["status"]
         self._command(["loadfile", self.items[index]["path"], "replace"])

@@ -4,6 +4,12 @@ Lichtspiel soll einen vorbereiteten Filmabend auf macOS und Windows sicher und a
 
 „Fertig“ bedeutet hier einen überprüfbaren Qualitätsstand, kein Versprechen perfekter Wiedergabe auf jeder Hardware. Jede Etappe bekommt sichtbares Verhalten, automatisierte Prüfungen und, wo nötig, einen Test an echten Geräten.
 
+## Auftrag für jeden Lauf
+
+Arbeite eigenständig an Lichtspiel weiter. Lies zuerst den aktuellen Code, die offenen Punkte in dieser Datei und die letzten Testergebnisse. Wähle die wichtigste überschaubare Verbesserung für die **native Qt-App auf macOS und Windows** und setze sie vollständig um. Priorisiere eine verlässliche Beamer- und Tonausgabe, eine während der Vorstellung stets bedienbare Regie, verständliche Fortschritts- und Fehleranzeigen, sichere Home-Assistant-Automation und eine ruhige, konsistente Gestaltung ohne generischen „Vibecoding“-Look. Behalte mpv als getrennten Wiedergabeprozess und halte die App lokal und ohne Webserver nutzbar.
+
+Prüfe die Änderung mit passenden Logik-, UI- und Pakettests; sieh neue Oberflächen auch im kleinen Fenster an. Dokumentiere Verhalten und Grenzen, aktualisiere die Aufgabenliste und veröffentliche geprüfte Änderungen im bestehenden GitHub-Repository. Behaupte keine erfolgreiche Beamer-, Audio- oder Lampenprüfung ohne einen Test am echten Gerät. Nenne am Ende des Laufs konkret, was verbessert wurde, welche Prüfungen bestanden haben und was als Nächstes offen ist. Beginne beim nächsten Lauf wieder mit dem wichtigsten offenen Punkt.
+
 ## Qualitätsmaßstab
 
 1. **Vor der Vorstellung:** Fehlende Dateien, Player und Ausgabegeräte sind erkennbar, bevor das Publikum im Saal sitzt. Eine geplante Vorstellung bleibt nach dem Neustart nachvollziehbar; ein Start findet nur zu einer gültigen Zeit statt.
@@ -18,6 +24,7 @@ Lichtspiel soll einen vorbereiteten Filmabend auf macOS und Windows sicher und a
 - [x] Ruhigere Regieansicht mit gesondertem Fokus während der Wiedergabe.
 - [x] Sichtbare Startprüfung für Medien, Player und Ausgabe.
 - [x] Erste native Qt-Regie ohne Chromium mit eigenem mpv-Prozess und fest sichtbaren Vorführtasten.
+- [x] Live-Fortschritt für Clip und Gesamtablauf sowie erweiterte Home-Assistant-Regeln in der Qt-Vorschau.
 - [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [ ] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
 - [ ] Wiederherstellung und Vorführprotokoll bei Unterbrechungen.
