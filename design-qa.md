@@ -1,32 +1,16 @@
-# Designprüfung: Regieansicht
+# Visuelle Prüfung der nativen App
 
-**Ergebnis:** `final result: passed`
+Die aktuellen Aufnahmen zeigen die **Qt-Desktop-App** im monochromen Design. Sie wurden unter Linux mit Beispieldaten und einer simulierten Testkarte erstellt. Sie belegen das Layout, nicht die Bild- oder Tonqualität eines echten Beamers.
 
-## Vergleichsbasis
+| Ansicht         | Bild                                                                     | Geprüfter Zustand                                                   |
+| --------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Regie           | [Leinwandvorschau und Ablauf](docs/assets/native-preview.png)            | Vorschau, Clip- und Gesamtfortschritt, fest sichtbare Vorführtasten |
+| Mediathek       | [Leerer Zustand](docs/assets/native-library.png)                         | Medienimport sichtbar; Aktionen ohne Auswahl deaktiviert            |
+| Bild & Ton      | [Einrichtung](docs/assets/native-setup.png)                              | Player-, Bildschirm-, Ton- und Vorschaueinstellungen                |
+| Licht           | [Raumplan](docs/assets/native-room-plan.png)                             | Vier Marker, eigener Scrollbereich und Planbedienung                |
+| Lichtregeln     | [Regeln](docs/assets/native-lighting.png)                                | Ereignisse, Helligkeit und Übergänge                                |
+| Kleines Fenster | [Live-Regie auf der Lichtseite](docs/assets/native-live-light-small.png) | Vorführtasten bleiben beim Seitenwechsel erreichbar                 |
 
-- Visuelle Richtung: [Regiepult-Entwurf](docs/assets/regiepult-concept.png), 1487 × 1058 Pixel.
-- Gerenderte Umsetzung: [Regieansicht](docs/assets/show-control.png), 1536 × 1091 Pixel bei 1536 × 1060 CSS-Pixeln und DPR 1.
-- Zustand: vorbereitete Vorstellung mit drei lokal importierten Testvideos, Browser-Ausgabe gewählt, Wiedergabe noch nicht gestartet. Der Entwurf zeigt vier beispielhafte Medien und das zweite Element als Auswahl. Deshalb wurden Textinhalt und Anzahl der Zeilen nicht als pixelgenauer Maßstab gewertet.
-- Für den Gesamtvergleich wurden beide Ansichten auf 1440 × 1024 Pixel normalisiert und gemeinsam betrachtet. Der Ablauf und der Detailbereich wurden zusätzlich als gemeinsamer Ausschnitt geprüft. Die Vergleichsbilder liegen lokal unter `/tmp/lichtspiel-design-qa.png` und `/tmp/lichtspiel-design-qa-focus.png`.
+Die Navigation ist in einem schwebenden Balken angeordnet. Weiß markiert die aktuelle Seite und die wichtigste Aktion; die übrigen Flächen bleiben in Schwarz und Grau. Die Lichttiefe im Seitenkopf ist statisch und läuft nur in der Bedienoberfläche. Die Leinwandausgabe bleibt ein getrennter mpv-Prozess.
 
-## Befunde
-
-Keine offenen P0-, P1- oder P2-Befunde. Die visuelle Hierarchie des Entwurfs ist übernommen: Betriebsstatus oben, zeilenförmiger Ablauf als Hauptfläche, Dateidetails rechts und Wiedergabesteuerung unten. Die frühere Schein-Vorschau und doppelte Zeitachse sind entfernt.
-
-- **Schrift:** DM Sans bleibt als Projektschrift. Haupttitel, Cue-Titel und Betriebsstatus sind klar abgestuft; Zeitangaben verwenden tabellarische Ziffern. Die kleinen Tabellenüberschriften sind bewusst nachgeordnet.
-- **Abstände und Raster:** Die Ablaufliste verwendet Zeilentrenner und eine schmale Auswahlmarkierung. Der Detailbereich hat eine eigene Spalte. Bei nur drei Elementen bleibt freier Platz für längere Vorstellungen.
-- **Farben:** Graphit, Warmweiß und ein einzelnes Bernsteinsignal bestimmen die Ansicht. Der Akzent markiert Auswahl, Wiedergabe und Hauptaktion.
-- **Bilder und Symbole:** Die Regieansicht benötigt keine Bildmotive. Standardaktionen verwenden die bestehende Icon-Bibliothek; es gibt keine Platzhaltervorschau.
-- **Text und Produktwahrheit:** Der Entwurf zeigt zusätzliche Metadaten und Cue-Bedingungen. Die Umsetzung zeigt nur tatsächlich vorhandene Daten und Funktionen. „Geplant“ kennzeichnet ein importiertes Element ohne vorgezogene Dateiprüfung; Beispieldateien sind ausdrücklich als nicht abspielbar markiert.
-
-## Prüfung und Verlauf
-
-Die erste mobile Aufnahme hatte horizontalen Überlauf durch die Beschriftung des Importknopfs. Auf schmalen Fenstern ist dieser Knopf nun ein beschriftetes Icon mit unverändertem zugänglichem Namen. Die erste Browserprüfung erwartete außerdem den bisherigen Endstatus „Vorstellung beendet“; dieser ist wieder sichtbar. Der erste Vergleich zeigte zu kleine Sekundärtexte und eine zu schmale Detailspalte; Schriftgrößen, Zeilenhöhe und Spaltenbreite wurden danach erhöht.
-
-Die aktualisierte Desktop-Ansicht, die mobile Ansicht und die laufende Vorstellung wurden im lokalen Chromium geöffnet. Geprüft wurden Einrichtung, Import, Reihenfolge, Speichern, echte Browser-Wiedergabe, Pause, Schwarzbild, Fortsetzen, Ende, Mediathek und Lichtvorschau. Keine Seitenfehler; kein horizontaler Überlauf bei 390 Pixeln oder in der Live-Ansicht. `npm run test:browser` und `npm run check` sind erfolgreich. Physische Beamer und Lampen waren für diese Designprüfung nicht verbunden.
-
-Die spätere Startprüfung macht fehlende Medien sichtbar und sperrt einen ungültigen Start. In der Live-Ansicht bleiben die Wiedergabeknöpfe bei 1536 × 1060 Pixeln im sichtbaren Bereich; die Einrichtungsdetails sind während der Vorstellung ausgeblendet.
-
-## Weitere Politur
-
-- P3: Bei sehr langen Abläufen könnte ein dauerhaft sichtbarer Spaltenkopf das Lesen erleichtern.
+Bei 1260 × 900 Pixeln wurden alle vier Hauptansichten visuell geprüft. Bei 900 × 640 Pixeln bleiben die Vorführtasten sichtbar; der Seiteninhalt scrollt separat. Ein Regressionstest prüft, dass die kurze Mediathek keine Scrollleiste von der längeren Lichtseite erbt. Die nativen Tests und die macOS-/Windows-Paketjobs laufen in der CI. Farb- und Kontrastwirkung auf echten Monitoren sowie die Bedienung mit Screenreadern brauchen weitere praktische Prüfung.

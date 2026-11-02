@@ -6,7 +6,7 @@ Diese Anleitung richtet Lichtspiel für einen Rechner mit angeschlossenem Beamer
 
 ## 1. Programme installieren
 
-Du brauchst Git, Node.js 22 oder 24 mit npm und [mpv](https://mpv.io/installation/). mpv übernimmt das Abspielen der Videodateien; es wird nicht mit Lichtspiel ausgeliefert.
+Für die native App brauchst du Git, Python 3.12 oder neuer und [mpv](https://mpv.io/installation/). mpv übernimmt das Abspielen der Videodateien; es wird nicht mit Lichtspiel ausgeliefert.
 
 Auf einem Mac mit Homebrew:
 
@@ -14,16 +14,19 @@ Auf einem Mac mit Homebrew:
 brew install mpv
 ```
 
-Unter Windows findest du Builds über die [mpv-Installationsseite](https://mpv.io/installation/). Entpacke den Player an einen dauerhaften Ort. Seine ausführbare Datei kannst du später im Assistenten auswählen.
+Unter Windows findest du Builds über die [mpv-Installationsseite](https://mpv.io/installation/). Entpacke den Player an einen dauerhaften Ort. Seine ausführbare Datei kannst du später unter **Bild & Ton** auswählen.
 
-Lichtspiel herunterladen und starten:
+Lichtspiel herunterladen und auf macOS starten:
 
 ```sh
 git clone https://github.com/nikpottbecker/lichtspiel.git
 cd lichtspiel
-npm ci
-npm run dev
+python3 -m venv .venv-native
+.venv-native/bin/python -m pip install -r native/requirements.txt
+.venv-native/bin/python native/main.py
 ```
+
+Unter Windows nutzt du nach dem Klonen `py -3.12 -m venv .venv-native`, dann `.\.venv-native\Scripts\python.exe -m pip install -r native/requirements.txt` und `.\.venv-native\Scripts\python.exe native\main.py`.
 
 Für die erste Installation werden Pakete heruntergeladen. Die lokale Wiedergabe benötigt danach keinen Lichtspiel-Server.
 
@@ -33,27 +36,25 @@ Für die erste Installation werden Pakete heruntergeladen. Die lokale Wiedergabe
 2. Lichtspiel öffnen und einen Namen für die Vorstellung eingeben.
 3. In **Bild & Ton** prüfen, ob mpv erkannt wurde. Andernfalls **mpv auswählen** verwenden.
 4. Den Beamer als Wiedergabebildschirm auswählen. Nach dem Anschließen eines neuen Geräts **Neu erkennen** verwenden.
-5. Die gewünschte Tonausgabe auswählen und den Assistenten abschließen.
+5. Die gewünschte Tonausgabe auswählen.
 
-Klicke nach der Bildschirmauswahl auf **Testkarte zeigen**. Die Desktop-App zeigt sie 12 Sekunden lang über denselben mpv-Ausgabeweg wie den Film. Prüfe direkt am Beamer den äußeren Rahmen, alle vier Ecken, Kreisform, Schärfelinien und Farbbalken. Die Bildschirmreihenfolge von Betriebssystem und Player kann sich je nach Aufbau unterscheiden; die Testkarte macht eine falsche Zuordnung sichtbar.
+Klicke nach der Bildschirmauswahl auf **Testkarte auf dem Beamer zeigen**. Die Desktop-App zeigt sie 12 Sekunden lang über denselben mpv-Ausgabeweg wie den Film. Prüfe direkt am Beamer den äußeren Rahmen, alle vier Ecken, Kreisform, Schärfelinien und Farbbalken. Die Bildschirmreihenfolge von Betriebssystem und Player kann sich je nach Aufbau unterscheiden; die Testkarte macht eine falsche Zuordnung sichtbar.
 
 Spiele danach einen kurzen Clip ab und prüfe Bildbewegung sowie Ton am richtigen HDMI-Gerät oder Audiointerface. Die Testkarte ist stumm und beweist weder die Qualität eines Filmcodecs noch die Audioausgabe.
 
-![Einrichtungsassistent in der Browser-Vorschau](assets/onboarding.png)
+![Native Einrichtung für Beamer und Tonausgabe](assets/native-setup.png)
 
 ## 3. Den Ablauf erstellen
 
 Mit **Medien hinzufügen** importierst du lokale Videos. Sie erscheinen in der Mediathek und werden zum Ablauf hinzugefügt. Die Desktop-App liest ihre Laufzeit mit mpv.
 
-In der Mediathek kannst du nach Dateinamen suchen und jeder Datei eine Kategorie geben: **Werbung**, **Trailer**, **Intro** oder **Film**. Die Kategorie beeinflusst auch die optionale Lichtautomation.
+In der Mediathek kannst du jeder Datei eine Kategorie geben: **Werbung**, **Trailer**, **Intro** oder **Film**. Die Kategorie beeinflusst auch die optionale Lichtautomation.
 
-Ordne die Clips im Bereich **Vorstellung** per Drag-and-drop oder über die Pfeile. Die Ablaufliste zeigt Reihenfolge, Laufzeiten und Gesamtdauer. Derselbe Clip darf mehrfach vorkommen.
+Ordne die Clips in der **Regie** über **Nach oben** und **Nach unten**. Die Ablaufliste zeigt Reihenfolge und Laufzeiten. Derselbe Clip darf mehrfach vorkommen.
 
 Änderungen werden automatisch lokal gespeichert. Die Desktop-App speichert Verweise auf die Originaldateien; verschiebe oder lösche diese Dateien nicht, solange du sie für deine Vorstellung brauchst.
 
-Der **Beispielablauf** zeigt nur die Bedienung. Er enthält keine abspielbaren Videos und muss durch eigene Dateien ersetzt werden.
-
-Die **Startprüfung** in der Regieansicht zeigt, ob Medien, Wiedergabe und Ausgabe bereit sind. Nutze **Erneut prüfen**, wenn du Dateien verschoben oder einen Beamer neu angeschlossen hast. Ein Problem in dieser Prüfung sperrt den Startknopf und nennt den nächsten Schritt.
+Mit **Wiedergabe prüfen** siehst du vorab, ob Medien, Player und Ausgabe bereit sind. Die App prüft die Dateien beim Start erneut.
 
 ## 4. Vorführen
 
@@ -70,7 +71,7 @@ Während einer laufenden Vorstellung oder einer aktivierten Startplanung sind Ä
 
 ## 5. Einen Start planen
 
-Trage unter **Startzeit** Datum und Uhrzeit ein und aktiviere **Automatisch starten**. Der Zeitpunkt gilt einmalig für den aktuellen Ablauf.
+Trage unter **Startzeit** Datum und Uhrzeit ein und wähle **Einplanen**. Der Zeitpunkt gilt einmalig für den aktuellen Ablauf.
 
 Die App muss geöffnet bleiben und der Rechner muss laufen. Lichtspiel weckt keinen ausgeschalteten oder schlafenden Computer. Ein um mehr als zehn Sekunden verpasster Start wird übersprungen; eine bereits laufende Vorstellung wird nicht unterbrochen. Nach einem Neustart der App musst du die Planung erneut aktivieren.
 
@@ -78,7 +79,7 @@ Die [Lichtsteuerung mit Home Assistant](home-assistant.md) lässt sich unabhäng
 
 ## Im Browser ausprobieren
 
-Mit `npm run dev:web` startest du die Browser-Vorschau. Sie importiert lokale Videos und speichert Kopien in IndexedDB. Diese Kopien belegen Speicher auf deinem Gerät und gehen beim Löschen der Websitedaten verloren.
+Installiere dafür Node.js 22 oder 24, führe `npm ci` aus und starte mit `npm run dev:web` die Browser-Vorschau. Sie importiert lokale Videos und speichert Kopien in IndexedDB. Diese Kopien belegen Speicher auf deinem Gerät und gehen beim Löschen der Websitedaten verloren.
 
 Beim Start öffnet sich ein separates Ausgabefenster. Erlaube das Popup und klicke darin gegebenenfalls auf **Wiedergabe freigeben**, damit der Browser Bild und Ton starten darf. Du kannst das Fenster manuell auf einen zweiten Bildschirm verschieben und dort Vollbild aktivieren.
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/cover.png" alt="Lichtspiel — deine Regie für den Filmabend" width="100%">
+  <img src="docs/assets/native-preview.png" alt="Native Lichtspiel-Regie mit Leinwandvorschau, Ablauf und Vorführtasten" width="100%">
 </p>
 
 <h1 align="center">Lichtspiel</h1>
@@ -11,9 +11,9 @@
 
 <p align="center">
   <a href="https://github.com/nikpottbecker/lichtspiel/actions/workflows/ci.yml"><img src="https://github.com/nikpottbecker/lichtspiel/actions/workflows/ci.yml/badge.svg" alt="CI-Prüfungen"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-ffba5b?labelColor=202426" alt="Lizenz: MIT"></a>
-  <a href="docs/roadmap.md"><img src="https://img.shields.io/badge/Status-0.1.0%20Preview-ffba5b?labelColor=202426" alt="Status: 0.1.0 Preview"></a>
-  <a href="docs/getting-started.md"><img src="https://img.shields.io/badge/Zielplattformen-macOS%20%26%20Windows-d8dad5?labelColor=202426" alt="Zielplattformen: macOS und Windows"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-MIT-e5e5e5?labelColor=202020" alt="Lizenz: MIT"></a>
+  <a href="docs/roadmap.md"><img src="https://img.shields.io/badge/Status-0.1.0%20Preview-e5e5e5?labelColor=202020" alt="Status: 0.1.0 Preview"></a>
+  <a href="docs/getting-started.md"><img src="https://img.shields.io/badge/Zielplattformen-macOS%20%26%20Windows-d8d8d8?labelColor=202020" alt="Zielplattformen: macOS und Windows"></a>
 </p>
 
 <p align="center">
@@ -37,19 +37,14 @@ Für Heimkinos, Vereine und eigene Filmprojekte. Lokal auf deinem Rechner, ohne 
 **Native Desktop-Vorschau:** Der Umbau auf eine Oberfläche aus Qt Widgets läuft. Sie verwendet keinen Chromium-Renderer; mpv bleibt der getrennte Player für die Leinwand. [Start, Funktionen und Grenzen der Qt-Version →](native/README.md)
 
 <p align="center">
-  <img src="docs/assets/native-preview.png" alt="Native Lichtspiel-Regie mit Ablauf, Leinwandvorschau und fest sichtbaren Vorführtasten" width="100%">
+  <img src="docs/assets/native-setup.png" alt="Bild- und Tonausgabe in der nativen Lichtspiel-App" width="100%">
 </p>
-<p align="center"><sub>Qt-Regie als Entwicklungsvorschau, unter Linux mit Beispieldaten aufgenommen. Die bisherige Electron-Version bleibt während der Geräteprüfung verfügbar.</sub></p>
-
-<p align="center">
-  <img src="docs/assets/show-control.png" alt="Lichtspiels Regieansicht mit Ablaufliste, Dateidetails, Ausgabestatus und Wiedergabesteuerung" width="100%">
-</p>
-<p align="center"><sub>Die tatsächliche Oberfläche mit einem Beispielablauf. Eigene Videodateien werden lokal importiert.</sub></p>
+<p align="center"><sub>Native Qt-App unter Linux aufgenommen. Echte Bildschirme, Ton und Beamer müssen am jeweiligen Vorführrechner geprüft werden.</sub></p>
 
 Während der Vorstellung zeigt die Regieansicht den laufenden Clip, seine Restzeit und das nächste Element im Ablauf.
 
 <p align="center">
-  <img src="docs/assets/live-control.png" alt="Lichtspiels Ansicht während einer pausierten Vorstellung mit aktuellem und nächstem Clip" width="100%">
+  <img src="docs/assets/native-live-light-small.png" alt="Fest sichtbare Vorführsteuerung während die Lichtseite geöffnet ist" width="100%">
 </p>
 
 ## Alles für den Ablauf
@@ -57,8 +52,8 @@ Während der Vorstellung zeigt die Regieansicht den laufenden Clip, seine Restze
 | Vorbereiten                                                                                                | Vorführen                                                                                                     |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Geführte Einrichtung** — Player, Bildschirm und Tonausgabe auswählen; Testkarte direkt am Beamer prüfen. | **Getrennte Ausgabe** — Bedienung am Rechner, Video über mpv auf dem gewählten Bildschirm.                    |
-| **Mediathek** — lokale Dateien importieren, suchen und als Werbung, Trailer, Intro oder Film einordnen.    | **Direkte Kontrolle** — starten, pausieren, fortsetzen, zum nächsten Clip wechseln oder Schwarzbild schalten. |
-| **Ablaufeditor** — Clips per Drag-and-drop oder Pfeilbuttons ordnen, Laufzeiten und Reihenfolge prüfen.    | **Geplanter Beginn** — die Vorstellung einmalig zu einer festgelegten Uhrzeit starten.                        |
+| **Mediathek** — lokale Dateien importieren und als Werbung, Trailer, Intro oder Film einordnen.            | **Direkte Kontrolle** — starten, pausieren, fortsetzen, zum nächsten Clip wechseln oder Schwarzbild schalten. |
+| **Ablaufeditor** — Clips mit Pfeilbuttons ordnen, Laufzeiten und Reihenfolge prüfen.                       | **Geplanter Beginn** — die Vorstellung einmalig zu einer festgelegten Uhrzeit starten.                        |
 | **Lokales Speichern** — den Ablauf beim nächsten Öffnen wiederfinden.                                      | **Lichtregeln** — Helligkeit und Dimmzeit passend zu Vorprogramm, Film, Pause und Ende einstellen.            |
 | **Startprüfung** — fehlende Medien, Player und Ausgabegeräte vor dem Beginn erkennen.                      | **Live-Ansicht** — aktuellen und nächsten Clip samt Restzeit im Blick behalten.                               |
 
@@ -66,18 +61,21 @@ Ein geplanter Start setzt eine geöffnete App und einen laufenden Rechner voraus
 
 ## Schnellstart
 
-Du brauchst **Git**, **Node.js 22 oder 24 mit npm** und für die Desktop-Wiedergabe **[mpv](https://mpv.io/installation/)**.
+Du brauchst **Git**, **Python 3.12 oder neuer** und für die Desktop-Wiedergabe **[mpv](https://mpv.io/installation/)**. Auf macOS:
 
 ```sh
 git clone https://github.com/nikpottbecker/lichtspiel.git
 cd lichtspiel
-npm ci
-npm run dev
+python3 -m venv .venv-native
+.venv-native/bin/python -m pip install -r native/requirements.txt
+.venv-native/bin/python native/main.py
 ```
+
+Unter Windows nutzt du nach dem Klonen `py -3.12 -m venv .venv-native`, dann `.\.venv-native\Scripts\python.exe -m pip install -r native/requirements.txt` und `.\.venv-native\Scripts\python.exe native\main.py`.
 
 Auf macOS lässt sich mpv beispielsweise mit `brew install mpv` installieren. Unter Windows wählst du einen Build über die [mpv-Installationsseite](https://mpv.io/installation/). Im Einrichtungsassistenten kannst du den Player bei Bedarf selbst auswählen.
 
-**Erst die Oberfläche ausprobieren?** Starte stattdessen `npm run dev:web` und öffne die angezeigte lokale Adresse. Die Browser-Vorschau benötigt kein mpv.
+**Erst die Browser-Vorschau ausprobieren?** Installiere Node.js 22 oder 24, führe `npm ci` aus und starte `npm run dev:web`. Sie benötigt kein mpv.
 
 Die [Startanleitung](docs/getting-started.md) führt vom angeschlossenen Beamer bis zur ersten Vorstellung und erklärt häufige Probleme.
 
@@ -104,7 +102,7 @@ Home Assistant verbindet Lichtspiel mit einer Lampe oder Lichtgruppe in deinem K
 | Ende oder manueller Stopp   | 80 %           |
 
 <p align="center">
-  <img src="docs/assets/lighting.png" alt="Lichtregeln für Vorprogramm, Hauptfilm, Pause und Ende mit einstellbarer Helligkeit und Übergangszeit" width="100%">
+  <img src="docs/assets/native-room-plan.png" alt="Nativer 2D-Raumplan mit vier beispielhaften Lichtmarkierungen" width="100%">
 </p>
 
 Die Automatik ist anfangs ausgeschaltet. Verbindungstest und Vorschau verändern kein Licht; der Knopf **Licht jetzt testen** sendet ausdrücklich einen Gerätebefehl. Ein Lichtfehler unterbricht die Filmwiedergabe nicht.
@@ -113,7 +111,7 @@ Die Automatik ist anfangs ausgeschaltet. Verbindungstest und Vorschau verändern
 
 ## Ein klarer erster Stand
 
-Die bisherige Desktop-Version verwendet **React + TypeScript** und **Electron**. Die neue [native Qt-Version](native/README.md) ersetzt deren Oberfläche schrittweise. Beide verwenden **mpv** als separaten Wiedergabeprozess.
+Die [native Qt-Version](native/README.md) ist der aktuelle Desktop-Schwerpunkt. Die bisherige Electron-Version bleibt für Gerätevergleiche im Repository; beide verwenden **mpv** als separaten Wiedergabeprozess.
 
 Automatisierte Tests decken Ablaufplanung, Dateiprüfung, Player-Protokoll und Lichtregeln ab. Browser-Tests prüfen außerdem den Weg vom Import bis zur tatsächlichen Videoausgabe. Die mpv-Steuerung wurde unter Linux mit echten Testclips und Nullausgabe geprüft; das ersetzt keine Bild- und Tonprüfung auf macOS oder Windows.
 
