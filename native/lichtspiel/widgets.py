@@ -49,7 +49,7 @@ class PreviewFrame(QWidget):
         self.setAccessibleName("Kontrollbild der Leinwand")
 
     def sizeHint(self):
-        return QSize(220, 132)
+        return QSize(195, 132)
 
     def mouseDoubleClickEvent(self, event):
         self.activated.emit()

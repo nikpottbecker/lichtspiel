@@ -10,11 +10,17 @@ def read_preview_frame(filename: str) -> QImage:
     source = Path(filename)
     try:
         reader = QImageReader(str(source))
-        reader.setAutoTransform(True)
-        dimensions = reader.size()
-        if dimensions.isValid():
-            reader.setScaledSize(dimensions.scaled(QSize(500, 300), Qt.KeepAspectRatio))
-        frame = reader.read()
+        try:
+            reader.setAutoTransform(True)
+            dimensions = reader.size()
+            if dimensions.isValid():
+                reader.setScaledSize(
+                    dimensions.scaled(QSize(500, 300), Qt.KeepAspectRatio)
+                )
+            frame = reader.read()
+        finally:
+            # QImageReader holds the file open on Windows until it is destroyed.
+            del reader
         if frame.isNull():
             raise ValueError("Das Vorschaubild konnte nicht gelesen werden.")
         return frame
