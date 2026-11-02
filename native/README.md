@@ -25,11 +25,13 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 | Projektdatei, Mediathek, Kategorien und geordneter Ablauf | Vorhandene Electron-Projektdatei wird gelesen und weiterverwendet                                                            |
 | mpv-Wiedergabe                                            | Separater Prozess mit asynchroner IPC; Pause, Fortsetzen, Schwarzbild, nächster Clip und Stopp                               |
 | Live-Regie                                                | Clip- und Gesamtablauf, Restzeiten, nächster Clip und Vorführtasten bleiben während der Wiedergabe auf allen Seiten sichtbar |
+| Leinwandvorschau                                          | Regelmäßig aktualisiertes Kontrollbild direkt aus mpv; vergrößerbar, ohne zweiten Videodecoder                               |
 | Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                                                      |
 | Wiederaufnahme                                            | Letzter Clip und ungefähre Position werden lokal gespeichert; Fortsetzen erfordert einen Klick und erneute Startprüfung      |
 | Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                                                          |
 | Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                                                |
 | Home Assistant                                            | Mehrere Lampen, Szenen oder Helligkeit je Ereignis, optional Schwarzbild, Gerätesuche                                        |
+| 2D-Lichtplan                                              | Verschiebbare Marker für gespeicherte Lampen, optional eigener Grundriss als lokales Bild                                    |
 | Kleine Fenster                                            | Regietasten bleiben sichtbar, der Ablauf scrollt                                                                             |
 
 Der Bildschirm wird für die Qt-Version als `nativeDisplayId` in `settings.json` gespeichert. Dadurch überschreibt sie die Electron-Bildschirmauswahl im gemeinsamen Projekt nicht. Öffne **nicht beide Apps gleichzeitig** mit demselben Projekt. Home-Assistant-Regeln können aus der bisherigen Konfiguration übernommen werden; das verschlüsselte Electron-Token ist nicht übertragbar. Gib es einmal in der Qt-App neu ein und aktiviere die Automatik dort ausdrücklich.
@@ -42,9 +44,19 @@ Speichere auf der Lichtseite zuerst Adresse und Token mit ausgeschalteter Automa
 
 Während der Vorstellung bleibt die Regie auch beim Wechsel zur Licht- oder Einrichtungsseite unten erreichbar. Der obere Seiteninhalt scrollt in kleinen Fenstern unabhängig davon. Nach Stopp oder Ende erscheint die Regie wieder nur auf der Vorstellungsseite.
 
+Die Regie holt standardmäßig ungefähr alle 1,5 Sekunden ein JPEG-Kontrollbild **aus dem laufenden mpv-Prozess**. Es wird außerhalb des UI-Threads auf Monitorgröße verkleinert. Unter **Bild & Ton** lässt sich die Vorschau ausschalten oder auf 0,5 beziehungsweise 3 Sekunden stellen. Mit dem Pfeil am Bild oder einem Doppelklick öffnest du eine größere, nicht modale Ansicht. Bei Pause bleibt das letzte Bild stehen; Schwarzbild zeigt bewusst kein altes Bild. Ein Vorschaufehler wird nur in der Vorschau angezeigt und stoppt die Vorstellung nicht. Die Vorschau ist kein Ersatz für die Kontrolle von Bild und Ton direkt am Beamer. Die Abtastrate ist bewusst begrenzt; sie ist kein flüssiger zweiter Videostream.
+
+![Native Regie mit einer simulierten Testkarte in der Leinwandvorschau](../docs/assets/native-preview.png)
+
+![Vergrößerte Kontrollvorschau mit Testkarte](../docs/assets/native-preview-large.png)
+
 ![Lichtseite mit sichtbarer Live-Regie bei kleinem Fenster](../docs/assets/native-live-light-small.png)
 
 ![Qt-Lichtregeln mit mehreren Lampen und einer Szene](../docs/assets/native-lighting.png)
+
+Auf der Lichtseite können gespeicherte `light.*`-Ziele auf eine **2D-Raumskizze** gesetzt und mit der Maus verschoben werden. Ausgewählte Marker lassen sich auch mit den Pfeiltasten bewegen (mit Umschalt schneller) und mit Entf entfernen. Optional lässt sich ein eigenes Grundrissbild als Hintergrund wählen; die App speichert eine verkleinerte Kopie lokal. Marker und Bild bleiben auf diesem Rechner und werden nicht an Home Assistant gesendet. Graue Marker zeigen Ziele, die inzwischen aus der Lichtkonfiguration entfernt wurden. Während der Vorstellung bleibt der Plan lesbar, aber gesperrt. Die Positionen ändern keine Lichtregeln und lösen keine Befehle aus.
+
+![2D-Raumplan mit vier beispielhaften Lampenmarkern](../docs/assets/native-room-plan.png)
 
 Die Vorschau liefert noch keine signierten Installationspakete. Der [Qt-Build-Workflow](../.github/workflows/native-desktop.yml) erzeugt unsignierte Testartefakte für macOS und Windows. mpv wird separat installiert.
 

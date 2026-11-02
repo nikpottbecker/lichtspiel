@@ -32,6 +32,8 @@ Beim **Fortsetzen** gilt wieder die Regel der aktuellen Clip-Kategorie. In der E
 
 Die Qt-App kann bis zu 20 `light.*`-Entitäten oder Lichtgruppen gemeinsam ansteuern. Pro Moment wählst du **Helligkeit** oder eine `scene.*`-Entität. Nutze Home-Assistant-Szenen für Farben, komplexe Raumzustände und Geräte mit unterschiedlichen Fähigkeiten. Vorprogramm-Clips direkt hintereinander wiederholen denselben Lichtbefehl nicht. Bei schnellen Zustandswechseln werden noch ausstehende alte Automatikaktionen übersprungen.
 
+In der nativen App gibt es zusätzlich einen lokalen **2D-Raumplan**. Speichere zuerst die gewünschten `light.*`-Ziele, wähle sie dann im Plan aus und ziehe ihre Marker an die passende Position. Ein eigenes Grundrissbild kann als Hintergrund geladen werden. Der Plan dient der Orientierung und verändert keine Lampen; nur aktivierte Regeln oder **Licht jetzt testen** senden Befehle. Markerpositionen und Grundrissbild werden lokal gespeichert, nicht an Home Assistant übertragen.
+
 ## Vorschau und echter Test
 
 Nach Änderungen müssen die Regeln zuerst gespeichert werden.

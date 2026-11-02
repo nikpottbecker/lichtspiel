@@ -122,6 +122,8 @@ def test_pattern_path() -> str:
 
 class MpvPlayer(QObject):
     state_changed = Signal(dict)
+    frame_ready = Signal(str)
+    preview_unavailable = Signal(str)
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -143,6 +145,13 @@ class MpvPlayer(QObject):
         self.connect_attempts = 0
         self.last_reply = 0.0
         self.heartbeat_serial = 1000
+        self.preview_request = None
+        self.preview_filename = ""
+        self.preview_request_index = -1
+        self.preview_requested_at = 0.0
+        self.preview_supported = True
+        self.preview_directory = None
+        self.file_ready = False
         self.stderr_tail = b""
         self.buffer = b""
         self.items: list[dict] = []
@@ -186,6 +195,16 @@ class MpvPlayer(QObject):
         ):
             raise ValueError("Ungültiger Wiederaufnahmepunkt.")
         self.items = [dict(item) for item in items]
+        if self.preview_directory is not None:
+            self.preview_directory.cleanup()
+        self.preview_directory = tempfile.TemporaryDirectory(
+            prefix="lichtspiel-preview-", ignore_cleanup_errors=True
+        )
+        self.preview_request = None
+        self.preview_filename = ""
+        self.preview_request_index = -1
+        self.preview_supported = True
+        self.file_ready = False
         self.start_position = start_position
         self.intentional_stop = False
         self.buffer = b""
@@ -210,6 +229,7 @@ class MpvPlayer(QObject):
                 "--input-vo-keyboard=no",
                 "--cursor-autohide=always",
                 "--no-input-terminal",
+                "--screenshot-jpeg-quality=65",
                 "--title=Lichtspiel – Leinwand",
                 f"--audio-device={audio_device}",
                 f"--input-ipc-server={self.endpoint}",
@@ -269,6 +289,21 @@ class MpvPlayer(QObject):
                 and message["request_id"] >= 1000
             ):
                 self.last_reply = time.monotonic()
+            if (
+                self.preview_request is not None
+                and message.get("request_id") == self.preview_request
+            ):
+                self.preview_request = None
+                filename = Path(self.preview_filename)
+                if self.preview_request_index != self.state["index"]:
+                    filename.unlink(missing_ok=True)
+                elif message.get("error") == "success" and self.preview_directory:
+                    if filename.is_file():
+                        self.frame_ready.emit(str(filename))
+                    else:
+                        self._disable_preview("Kein Vorschaubild empfangen.")
+                else:
+                    self._disable_preview("mpv unterstützt die Bildvorschau nicht.")
             if message.get("event") == "property-change" and isinstance(
                 message.get("data"), (int, float)
             ):
@@ -276,7 +311,10 @@ class MpvPlayer(QObject):
                     self._update(position=message["data"])
                 elif message.get("name") == "duration":
                     self._update(duration=message["data"])
+            elif message.get("event") == "file-loaded":
+                self.file_ready = True
             elif message.get("event") == "end-file":
+                self.file_ready = False
                 if message.get("reason") == "eof":
                     self.next()
                 elif message.get("reason") == "error":
@@ -300,8 +338,14 @@ class MpvPlayer(QObject):
             self.fail("Die Verbindung zum Player ist abgebrochen.")
 
     def _finished(self, _code, _status):
+        self._cleanup_preview()
         if not self.intentional_stop and self.active():
             self.fail("Der Player wurde beendet. Prüfe mpv und die Ausgabe.")
+
+    def _cleanup_preview(self):
+        if self.preview_directory is not None:
+            self.preview_directory.cleanup()
+            self.preview_directory = None
 
     def _drain_stderr(self):
         self.stderr_tail = (
@@ -324,6 +368,45 @@ class MpvPlayer(QObject):
             self._command(["get_property", "time-pos"], self.heartbeat_serial)
         except RuntimeError:
             self.fail("Der Player ist nicht mehr verbunden.")
+
+    def request_preview(self) -> bool:
+        if (
+            not self.preview_supported
+            or not self.file_ready
+            or self.state["status"]
+            not in (
+                "playing",
+                "paused",
+            )
+        ):
+            return False
+        if self.preview_request is not None:
+            if time.monotonic() - self.preview_requested_at > 6:
+                self._disable_preview("Bildvorschau antwortet nicht.")
+            return False
+        if self.socket.state() != QLocalSocket.ConnectedState:
+            return False
+        self.heartbeat_serial += 1
+        self.preview_request = self.heartbeat_serial
+        self.preview_request_index = self.state["index"]
+        self.preview_requested_at = time.monotonic()
+        try:
+            filename = str(
+                Path(self.preview_directory.name) / f"frame-{self.preview_request}.jpg"
+            )
+            self.preview_filename = filename
+            self._command(
+                ["screenshot-to-file", filename, "video"], self.preview_request
+            )
+        except (OSError, RuntimeError):
+            self._disable_preview("Bildvorschau konnte nicht angefordert werden.")
+            return False
+        return True
+
+    def _disable_preview(self, message: str):
+        self.preview_supported = False
+        self.preview_request = None
+        self.preview_unavailable.emit(message)
 
     def pause(self):
         if self.state["status"] == "playing":
@@ -362,6 +445,7 @@ class MpvPlayer(QObject):
             )
             return
         status = self.state["status"]
+        self.file_ready = False
         self._command(["loadfile", self.items[index]["path"], "replace"])
         if status in ("paused", "blackout"):
             self._command(["set_property", "pause", True])
@@ -369,6 +453,8 @@ class MpvPlayer(QObject):
 
     def stop(self, reason: str = "user"):
         self.intentional_stop = True
+        self.file_ready = False
+        self.preview_request = None
         self.connect_timer.stop()
         self.watchdog.stop()
         if self.socket.state() == QLocalSocket.ConnectedState:
@@ -378,6 +464,8 @@ class MpvPlayer(QObject):
             except RuntimeError:
                 pass
         self.socket.abort()
+        if self.process.state() == QProcess.NotRunning:
+            self._cleanup_preview()
         if self.process.state() != QProcess.NotRunning:
             QTimer.singleShot(1500, self._kill_if_running)
         if self.endpoint and sys.platform != "win32":

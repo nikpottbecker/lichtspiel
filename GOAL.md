@@ -27,6 +27,7 @@ Prüfe die Änderung mit passenden Logik-, UI- und Pakettests; sieh neue Oberfl�
 - [x] Live-Fortschritt für Clip und Gesamtablauf sowie erweiterte Home-Assistant-Regeln in der Qt-Vorschau.
 - [x] Bewusste Wiederaufnahme einer unterbrochenen Qt-Vorstellung nach Medien- und Ausgabeprüfung.
 - [x] Live-Regie bleibt während der Wiedergabe auch auf Medien-, Einrichtungs- und Lichtseite sichtbar.
+- [x] Native Kontrollvorschau aus dem laufenden mpv-Prozess und lokaler 2D-Raumplan für Lichtmarkierungen.
 - [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [ ] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
 - [ ] Vorführprotokoll für Start, Eingriffe, Clipwechsel und Fehler sowie weitere Wiederherstellungsfälle.

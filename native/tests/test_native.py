@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -7,6 +8,7 @@ from unittest import mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from native.lichtspiel.model import (
@@ -18,6 +20,7 @@ from native.lichtspiel.model import (
 )
 from native.lichtspiel.player import display_args, test_pattern_path
 from native.lichtspiel.recovery import checkpoint, write_checkpoint
+from native.lichtspiel.room_plan import load_plan
 from native.lichtspiel.widgets import ElidedLabel
 from native.lichtspiel.window import MainWindow
 
@@ -117,6 +120,9 @@ class NativeWindowTests(unittest.TestCase):
             self.assertLessEqual(
                 window.next_cue.geometry().right(), card.contentsRect().right()
             )
+            self.assertLessEqual(
+                window.stage_preview.geometry().right(), window.pages.width()
+            )
             window.close()
 
     def test_live_transport_remains_visible_on_every_page_during_show(self):
@@ -209,6 +215,113 @@ class NativeWindowTests(unittest.TestCase):
         self.assertTrue(title.text().endswith("…"))
         self.assertEqual(title.toolTip(), full)
         title.close()
+
+    def test_preview_decodes_a_frame_without_blocking_the_control_room(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            filename = directory / "frame.jpg"
+            frame = QImage(640, 360, QImage.Format_RGB32)
+            frame.fill("#496c78")
+            self.assertTrue(frame.save(str(filename)))
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project",
+                    return_value=empty_project(),
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory", return_value=directory
+                ),
+            ):
+                window = MainWindow()
+                window.jobs.clear()
+                window.player.state["status"] = "playing"
+                window._preview_frame_ready(str(filename))
+                self.assertTrue(window.preview_loading)
+                window.jobs[-1][0].result(timeout=2)
+                window._poll_jobs()
+                self.assertFalse(window.preview_frame.frame.isNull())
+                self.assertFalse(window.stage_preview.frame.isNull())
+                self.assertFalse(filename.exists())
+                window._show_preview_dialog()
+                self.assertFalse(window.preview_dialog.isModal())
+                window.player.state["status"] = "idle"
+                window.close()
+
+    def test_light_plan_saves_markers_and_local_floorplan(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            source = directory / "my-room.jpg"
+            picture = QImage(1200, 800, QImage.Format_RGB32)
+            picture.fill("#f2f0e8")
+            self.assertTrue(picture.save(str(source)))
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project",
+                    return_value=empty_project(),
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory", return_value=directory
+                ),
+            ):
+                window = MainWindow()
+                window.lighting.config["entityIds"] = ["light.decke"]
+                window._refresh_lighting()
+                window.plan_entity.setCurrentIndex(
+                    window.plan_entity.findData("light.decke")
+                )
+                with mock.patch.object(window.lighting.executor, "submit") as submit:
+                    window._add_plan_light()
+                    submit.assert_not_called()
+                self.assertEqual(
+                    load_plan(directory / "room-plan.json")["markers"][0]["entityId"],
+                    "light.decke",
+                )
+                with mock.patch(
+                    "native.lichtspiel.window.QFileDialog.getOpenFileName",
+                    return_value=(str(source), ""),
+                ):
+                    window._choose_room_background()
+                self.assertTrue((directory / "room-background.png").exists())
+                self.assertIsNotNone(window.room_plan.background_item)
+                window._load_room_background()
+                self.assertIsNotNone(window.room_plan.background_item)
+                window._clear_room_background()
+                self.assertFalse((directory / "room-background.png").exists())
+                window.room_plan.markers["light.decke"].setSelected(True)
+                window._remove_plan_light()
+                self.assertEqual(load_plan(directory / "room-plan.json")["markers"], [])
+                window.close()
+
+    def test_preview_frequency_can_be_disabled_without_stopping_playback(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project",
+                    return_value=empty_project(),
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory", return_value=directory
+                ),
+            ):
+                window = MainWindow()
+                window.preview_interval_combo.setCurrentIndex(
+                    window.preview_interval_combo.findData(0)
+                )
+                self.assertFalse(window.preview_timer.isActive())
+                self.assertIn("AUS", window.preview_caption.text())
+                self.assertEqual(
+                    json.loads((directory / "settings.json").read_text())[
+                        "previewIntervalMs"
+                    ],
+                    0,
+                )
+                window.preview_interval_combo.setCurrentIndex(
+                    window.preview_interval_combo.findData(500)
+                )
+                self.assertTrue(window.preview_timer.isActive())
+                self.assertEqual(window.preview_timer.interval(), 500)
+                window.close()
 
     def test_restart_point_requires_explicit_resume_and_preflight(self):
         with tempfile.TemporaryDirectory() as temporary:

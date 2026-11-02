@@ -9,11 +9,12 @@ from pathlib import Path
 from uuid import uuid4
 
 from PySide6.QtCore import QDateTime, Qt, QTimer
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QImageReader
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateTimeEdit,
+    QDialog,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -45,6 +46,7 @@ from .model import (
     save_project,
 )
 from .player import MpvPlayer, ProjectionTest, audio_devices, find_mpv, probe_duration
+from .preview import read_preview_frame
 from .progress import clock, timing
 from .recovery import (
     checkpoint,
@@ -53,8 +55,9 @@ from .recovery import (
     validate_checkpoint,
     write_checkpoint,
 )
+from .room_plan import RoomPlan, empty_plan, load_plan, save_plan
 from .style import STYLESHEET
-from .widgets import ElidedLabel
+from .widgets import ElidedLabel, PreviewFrame
 
 VIDEO_FILTER = "Videodateien (*.mp4 *.m4v *.mov *.mkv *.webm *.avi *.mpg *.mpeg)"
 CATEGORIES = ("Werbung", "Trailer", "Intro", "Film")
@@ -111,7 +114,21 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLESHEET)
         self.project = load_project()
         self.settings_path = data_directory() / "settings.json"
+        saved_preview_interval = self._read_settings().get("previewIntervalMs", 1500)
+        self.preview_interval_ms = (
+            saved_preview_interval
+            if saved_preview_interval in (0, 500, 1500, 3000)
+            else 1500
+        )
         self.recovery_path = data_directory() / "show-recovery.json"
+        self.room_plan_path = data_directory() / "room-plan.json"
+        self.room_background_path = data_directory() / "room-background.png"
+        self.room_plan_error = ""
+        try:
+            self.room_plan_data = load_plan(self.room_plan_path)
+        except (TypeError, ValueError) as error:
+            self.room_plan_data = empty_plan()
+            self.room_plan_error = str(error)
         self.recovery = None
         self.recovery_error = ""
         try:
@@ -140,6 +157,17 @@ class MainWindow(QMainWindow):
         self.scheduled_at: float | None = None
         self._build()
         self.player.state_changed.connect(self._player_state)
+        self.player.frame_ready.connect(self._preview_frame_ready)
+        self.player.preview_unavailable.connect(self._preview_unavailable)
+        self.preview_loading = False
+        self.preview_epoch = 0
+        self.preview_last_index = -1
+        self.preview_dialog = None
+        self.preview_timer = QTimer(self)
+        self.preview_timer.setInterval(max(500, self.preview_interval_ms))
+        self.preview_timer.timeout.connect(self._preview_tick)
+        if self.preview_interval_ms:
+            self.preview_timer.start()
         self.projection.finished.connect(self._projection_finished)
         self.poll_timer = QTimer(self)
         self.poll_timer.setInterval(100)
@@ -168,7 +196,7 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError, AttributeError):
             return {}
 
-    def _save_setting(self, key: str, value: str):
+    def _save_setting(self, key: str, value: str | int):
         settings = self._read_settings()
         settings[key] = value
         atomic_json(self.settings_path, settings)
@@ -260,10 +288,15 @@ class MainWindow(QMainWindow):
         self.title_input.editingFinished.connect(self._save_title)
         column.addWidget(self.title_input)
         column.addWidget(rule())
-        column.addWidget(label("ABLAUF", "eyebrow"))
+        workbench = QHBoxLayout()
+        workbench.setSpacing(18)
+        queue_column = QVBoxLayout()
+        queue_column.setSpacing(10)
+        queue_column.addWidget(label("ABLAUF", "eyebrow"))
         self.queue_list = QListWidget()
         self.queue_list.setAccessibleName("Ablauf")
-        column.addWidget(self.queue_list, 1)
+        self.queue_list.setMinimumHeight(220)
+        queue_column.addWidget(self.queue_list, 1)
         row = QHBoxLayout()
         self.move_up = button("Nach oben", lambda: self._move_queue(-1))
         self.move_down = button("Nach unten", lambda: self._move_queue(1))
@@ -271,7 +304,22 @@ class MainWindow(QMainWindow):
         for control in (self.move_up, self.move_down, self.remove_queue):
             row.addWidget(control)
         row.addStretch()
-        column.addLayout(row)
+        queue_column.addLayout(row)
+        workbench.addLayout(queue_column, 3)
+        stage_column = QVBoxLayout()
+        stage_column.setSpacing(10)
+        stage_column.addWidget(label("LEINWANDBILD", "eyebrow"))
+        self.stage_preview = PreviewFrame()
+        self.stage_preview.setMinimumWidth(230)
+        self.stage_preview.setFixedHeight(220)
+        self.stage_preview.activated.connect(self._show_preview_dialog)
+        stage_column.addWidget(self.stage_preview)
+        stage_column.addWidget(
+            label("Kontrollbild · Doppelklick für Großansicht", "hint")
+        )
+        stage_column.addStretch()
+        workbench.addLayout(stage_column, 2)
+        column.addLayout(workbench, 1)
         self.readiness = label("Startprüfung ausstehend", "hint")
         column.addWidget(self.readiness)
         column.addWidget(button("Jetzt prüfen", self._check_readiness))
@@ -299,29 +347,49 @@ class MainWindow(QMainWindow):
         self.recovery_card.hide()
         live_card = QFrame()
         live_card.setObjectName("liveCard")
-        live = QVBoxLayout(live_card)
+        live = QHBoxLayout(live_card)
         live.setContentsMargins(18, 15, 18, 16)
-        live.setSpacing(7)
+        live.setSpacing(14)
+        preview_column = QVBoxLayout()
+        preview_column.setSpacing(4)
+        preview_header = QHBoxLayout()
+        self.preview_caption = label("LEINWANDBILD · VORSCHAU", "eyebrow")
+        self.preview_caption.setWordWrap(False)
+        preview_header.addWidget(self.preview_caption)
+        preview_header.addStretch()
+        expand = button("↗", self._show_preview_dialog, "previewExpand")
+        expand.setAccessibleName("Vorschau vergrößern")
+        expand.setFixedSize(24, 20)
+        preview_header.addWidget(expand)
+        preview_column.addLayout(preview_header)
+        self.preview_frame = PreviewFrame()
+        self.preview_frame.setFixedHeight(90)
+        self.preview_frame.setMaximumWidth(250)
+        self.preview_frame.activated.connect(self._show_preview_dialog)
+        preview_column.addWidget(self.preview_frame, 1)
+        live.addLayout(preview_column)
+        metrics = QVBoxLayout()
+        metrics.setSpacing(7)
         live_header = QHBoxLayout()
         self.cue_context = label("LEINWAND · BEREIT", "eyebrow")
         self.next_cue = ElidedLabel("NÄCHSTER CLIP · —", "eyebrow")
         self.cue_context.setWordWrap(False)
         self.cue_context.setMaximumWidth(240)
-        self.next_cue.setFixedWidth(220)
+        self.next_cue.setFixedWidth(160)
         self.next_cue.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         self.next_cue.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         live_header.addWidget(self.cue_context)
         live_header.addStretch()
         live_header.addWidget(self.next_cue)
-        live.addLayout(live_header)
+        metrics.addLayout(live_header)
         self.current_cue = ElidedLabel("Keine Vorstellung läuft.", "liveTitle")
-        live.addWidget(self.current_cue)
+        metrics.addWidget(self.current_cue)
         self.clip_progress = QProgressBar()
         self.clip_progress.setObjectName("clipProgress")
         self.clip_progress.setRange(0, 1000)
         self.clip_progress.setTextVisible(False)
         self.clip_progress.setAccessibleName("Fortschritt des aktuellen Clips")
-        live.addWidget(self.clip_progress)
+        metrics.addWidget(self.clip_progress)
         clip_times = QHBoxLayout()
         self.clip_elapsed = label("00:00 / 00:00", "timePrimary")
         self.clip_remaining = label("Noch 00:00", "timeSecondary")
@@ -330,14 +398,14 @@ class MainWindow(QMainWindow):
         clip_times.addWidget(self.clip_elapsed)
         clip_times.addStretch()
         clip_times.addWidget(self.clip_remaining)
-        live.addLayout(clip_times)
-        live.addSpacing(3)
+        metrics.addLayout(clip_times)
+        metrics.addSpacing(3)
         self.show_progress = QProgressBar()
         self.show_progress.setObjectName("showProgress")
         self.show_progress.setRange(0, 1000)
         self.show_progress.setTextVisible(False)
         self.show_progress.setAccessibleName("Fortschritt der gesamten Vorstellung")
-        live.addWidget(self.show_progress)
+        metrics.addWidget(self.show_progress)
         show_times = QHBoxLayout()
         self.show_elapsed = label("GESAMTABLAUF · 00:00 / 00:00", "timeSecondary")
         self.show_remaining = label("Noch 00:00", "timeSecondary")
@@ -346,7 +414,8 @@ class MainWindow(QMainWindow):
         show_times.addWidget(self.show_elapsed)
         show_times.addStretch()
         show_times.addWidget(self.show_remaining)
-        live.addLayout(show_times)
+        metrics.addLayout(show_times)
+        live.addLayout(metrics, 1)
         transport_column.addWidget(live_card)
         transport = QGridLayout()
         transport.setHorizontalSpacing(10)
@@ -459,6 +528,29 @@ class MainWindow(QMainWindow):
                 "hint",
             )
         )
+        column.addWidget(rule())
+        column.addWidget(label("KONTROLLVORSCHAU", "eyebrow"))
+        self.preview_interval_combo = QComboBox()
+        for title, interval in (
+            ("Aus", 0),
+            ("Schnell · alle 0,5 Sekunden", 500),
+            ("Normal · alle 1,5 Sekunden", 1500),
+            ("Schonend · alle 3 Sekunden", 3000),
+        ):
+            self.preview_interval_combo.addItem(title, interval)
+        self.preview_interval_combo.setCurrentIndex(
+            self.preview_interval_combo.findData(self.preview_interval_ms)
+        )
+        self.preview_interval_combo.currentIndexChanged.connect(
+            self._preview_interval_changed
+        )
+        column.addWidget(self.preview_interval_combo)
+        column.addWidget(
+            label(
+                "Schnellere Kontrollbilder brauchen mehr Rechenleistung. Die Leinwandausgabe bleibt unabhängig.",
+                "hint",
+            )
+        )
         column.addStretch()
 
     def _build_lighting(self):
@@ -506,6 +598,40 @@ class MainWindow(QMainWindow):
                 "hint",
             )
         )
+        column.addWidget(rule())
+        column.addWidget(label("RAUMPLAN", "eyebrow"))
+        column.addWidget(
+            label(
+                "Lampen auf der 2D-Skizze platzieren und mit Maus oder Pfeiltasten verschieben; Entf entfernt die Auswahl. Positionen und Lichtregeln bleiben getrennt.",
+                "muted",
+            )
+        )
+        self.room_plan = RoomPlan()
+        self.room_plan.changed.connect(self._save_room_plan)
+        column.addWidget(self.room_plan)
+        background_row = QHBoxLayout()
+        self.choose_background_button = button(
+            "Eigenen Grundriss wählen", self._choose_room_background
+        )
+        self.clear_background_button = button(
+            "Grundriss entfernen", self._clear_room_background
+        )
+        background_row.addWidget(self.choose_background_button)
+        background_row.addWidget(self.clear_background_button)
+        background_row.addStretch()
+        column.addLayout(background_row)
+        plan_row = QHBoxLayout()
+        self.plan_entity = QComboBox()
+        plan_row.addWidget(self.plan_entity, 1)
+        self.add_plan_button = button("Auf Plan setzen", self._add_plan_light)
+        self.remove_plan_button = button(
+            "Markierung entfernen", self._remove_plan_light
+        )
+        plan_row.addWidget(self.add_plan_button)
+        plan_row.addWidget(self.remove_plan_button)
+        column.addLayout(plan_row)
+        self.room_plan_status = label("Noch keine Lampen markiert.", "hint")
+        column.addWidget(self.room_plan_status)
         column.addWidget(rule())
         column.addWidget(label("LICHTREGELN", "eyebrow"))
         self.light_rules = {}
@@ -589,6 +715,16 @@ class MainWindow(QMainWindow):
         self.light_enabled.setChecked(config["enabled"])
         self.light_url.setText(config["baseUrl"])
         self.light_entity.setText(", ".join(config["entityIds"]))
+        selected_entity = self.plan_entity.currentData()
+        self.plan_entity.clear()
+        self.plan_entity.addItem("Gespeicherte Lampe auswählen", "")
+        for entity_id in config["entityIds"]:
+            self.plan_entity.addItem(entity_id, entity_id)
+        selected_index = self.plan_entity.findData(selected_entity)
+        self.plan_entity.setCurrentIndex(max(0, selected_index))
+        self.room_plan.set_plan(self.room_plan_data, config["entityIds"])
+        self._load_room_background()
+        self._update_room_plan_status()
         for event, (
             enabled,
             mode,
@@ -610,6 +746,108 @@ class MainWindow(QMainWindow):
             else "Automatik ausgeschaltet · Änderungen erst nach Speichern wirksam"
         )
         self._update_light_preview()
+
+    def _update_room_plan_status(self):
+        count = len(self.room_plan.markers)
+        self.room_plan_status.setText(
+            self.room_plan_error
+            or f"{count} Lampe(n) markiert · graue Marker sind nicht mehr als Lichtziel gespeichert."
+        )
+
+    def _save_room_plan(self):
+        if self.player.active():
+            return
+        plan = self.room_plan.current_plan()
+        try:
+            save_plan(self.room_plan_path, plan)
+        except (OSError, TypeError, ValueError) as error:
+            self.room_plan_error = f"Raumplan konnte nicht gespeichert werden: {error}"
+            self._update_room_plan_status()
+            return
+        self.room_plan_data = plan
+        self.room_plan_error = ""
+        self._update_room_plan_status()
+
+    def _load_room_background(self):
+        if not self.room_background_path.is_file():
+            self.room_plan.set_background(None)
+            return
+        reader = QImageReader(str(self.room_background_path))
+        reader.setAutoTransform(True)
+        self.room_plan.set_background(reader.read())
+
+    def _choose_room_background(self):
+        if self.player.active():
+            return
+        filename, _selected = QFileDialog.getOpenFileName(
+            self, "Grundriss wählen", "", "Bilder (*.png *.jpg *.jpeg *.webp)"
+        )
+        if not filename:
+            return
+        source = Path(filename)
+        try:
+            size = source.stat().st_size
+        except OSError as error:
+            self.room_plan_status.setText(
+                f"Grundriss konnte nicht gelesen werden: {error}"
+            )
+            return
+        if size > 20 * 1024 * 1024:
+            self.room_plan_status.setText("Grundrissbild ist zu groß (maximal 20 MB).")
+            return
+        reader = QImageReader(filename)
+        reader.setAutoTransform(True)
+        dimensions = reader.size()
+        if dimensions.isValid():
+            reader.setScaledSize(dimensions.scaled(1280, 720, Qt.KeepAspectRatio))
+        image = reader.read()
+        if image.isNull():
+            self.room_plan_status.setText(
+                "Das Grundrissbild konnte nicht gelesen werden."
+            )
+            return
+        temporary = self.room_background_path.with_suffix(".tmp.png")
+        try:
+            self.room_background_path.parent.mkdir(parents=True, exist_ok=True)
+            if not image.save(str(temporary), "PNG"):
+                raise OSError("Bild konnte nicht gespeichert werden.")
+            temporary.replace(self.room_background_path)
+        except OSError as error:
+            self.room_plan_status.setText(
+                f"Grundriss konnte nicht gespeichert werden: {error}"
+            )
+            temporary.unlink(missing_ok=True)
+            return
+        self.room_plan.set_background(image)
+        self._update_room_plan_status()
+
+    def _clear_room_background(self):
+        if self.player.active():
+            return
+        try:
+            self.room_background_path.unlink(missing_ok=True)
+        except OSError as error:
+            self.room_plan_status.setText(
+                f"Grundriss konnte nicht entfernt werden: {error}"
+            )
+            return
+        self.room_plan.set_background(None)
+        self._update_room_plan_status()
+
+    def _add_plan_light(self):
+        entity_id = self.plan_entity.currentData()
+        if not entity_id or self.player.active():
+            return
+        if not self.room_plan.add_light(entity_id, self.lighting.config["entityIds"]):
+            self.room_plan_status.setText(
+                "Lampe ist bereits markiert oder der Plan ist voll."
+            )
+
+    def _remove_plan_light(self):
+        if self.player.active():
+            return
+        if not self.room_plan.remove_selected():
+            self.room_plan_status.setText("Wähle zuerst eine Markierung auf dem Plan.")
 
     def _lighting_input(self) -> dict:
         return {
@@ -868,6 +1106,28 @@ class MainWindow(QMainWindow):
     def _audio_changed(self, _index):
         self.project["audioDevice"] = self.audio_combo.currentData() or "auto"
         self._save()
+
+    def _preview_interval_changed(self, _index):
+        interval = self.preview_interval_combo.currentData()
+        if interval not in (0, 500, 1500, 3000):
+            return
+        self.preview_interval_ms = interval
+        self._save_setting("previewIntervalMs", interval)
+        if interval:
+            self.preview_timer.setInterval(interval)
+            self.preview_timer.start()
+            self.preview_frame.show_message("Vorschau wird angefordert …", clear=True)
+            self.stage_preview.show_message("Vorschau wird angefordert …", clear=True)
+            self.preview_caption.setText("LEINWANDBILD · VORSCHAU")
+        else:
+            self.preview_timer.stop()
+            self.preview_caption.setText("LEINWANDBILD · AUS")
+            self.preview_frame.show_message("Vorschau ausgeschaltet", clear=True)
+            self.stage_preview.show_message("Vorschau ausgeschaltet", clear=True)
+            if self.preview_dialog is not None:
+                self.preview_dialog_frame.show_message(
+                    "Vorschau ausgeschaltet", clear=True
+                )
 
     def _save_title(self):
         self.project["title"] = self.title_input.text().strip() or "Filmabend"
@@ -1340,6 +1600,50 @@ class MainWindow(QMainWindow):
     def _player_state(self, state: dict):
         status = state["status"]
         active = status in ("starting", "playing", "paused", "blackout")
+        if active and state["index"] != self.preview_last_index:
+            self.preview_last_index = state["index"]
+            self.preview_epoch += 1
+            self.preview_loading = False
+            self.preview_frame.show_message(
+                "Neuer Clip · Vorschau startet …", clear=True
+            )
+            self.stage_preview.show_message(
+                "Neuer Clip · Vorschau startet …", clear=True
+            )
+            if self.preview_dialog is not None:
+                self.preview_dialog_frame.show_message(
+                    "Neuer Clip · Vorschau startet …", clear=True
+                )
+        if status in ("starting", "idle", "finished", "error", "blackout"):
+            self.preview_epoch += 1
+            self.preview_loading = False
+            message = {
+                "starting": "Vorschau startet …",
+                "idle": "Vorschau startet mit der Vorstellung",
+                "finished": "Vorstellung beendet",
+                "error": "Playerfehler · keine Vorschau",
+                "blackout": "Schwarzbild auf der Leinwand",
+            }[status]
+            self.preview_frame.show_message(message, clear=True)
+            self.stage_preview.show_message(message, clear=True)
+            if self.preview_dialog is not None:
+                self.preview_dialog_frame.show_message(message, clear=True)
+            self.preview_caption.setText("LEINWANDBILD · VORSCHAU")
+            if not active:
+                self.preview_last_index = -1
+        elif status == "paused":
+            self.preview_caption.setText("LEINWANDBILD · PAUSE")
+        if (
+            self.preview_interval_ms == 0
+            and self.preview_frame.caption != "Vorschau ausgeschaltet"
+        ):
+            self.preview_caption.setText("LEINWANDBILD · AUS")
+            self.preview_frame.show_message("Vorschau ausgeschaltet", clear=True)
+            self.stage_preview.show_message("Vorschau ausgeschaltet", clear=True)
+            if self.preview_dialog is not None:
+                self.preview_dialog_frame.show_message(
+                    "Vorschau ausgeschaltet", clear=True
+                )
         self._sync_transport_visibility(active)
         measure = timing(state, self.player.items)
         self._persist_recovery(state)
@@ -1349,6 +1653,11 @@ class MainWindow(QMainWindow):
             future = self.lighting.submit_auto(light_event)
             self._queue_light_job(future, self._light_success)
         self.save_light_button.setEnabled(not active)
+        self.room_plan.set_editable(not active)
+        self.add_plan_button.setEnabled(not active)
+        self.remove_plan_button.setEnabled(not active)
+        self.choose_background_button.setEnabled(not active)
+        self.clear_background_button.setEnabled(not active)
         self.import_button.setEnabled(not active and not self.import_pending)
         self.add_queue_button.setEnabled(not active)
         self.category_combo.setEnabled(not active)
@@ -1417,6 +1726,82 @@ class MainWindow(QMainWindow):
             "error": "FEHLER",
         }.get(status, status.upper())
 
+    def _preview_tick(self):
+        if not self.isVisible() or self.isMinimized():
+            return
+        status = self.player.state["status"]
+        if (status == "playing" and not self.preview_loading) or (
+            status == "paused" and self.preview_frame.frame.isNull()
+        ):
+            self.player.request_preview()
+
+    def _preview_frame_ready(self, filename: str):
+        if self.preview_interval_ms == 0 or self.player.state["status"] not in (
+            "playing",
+            "paused",
+        ):
+            Path(filename).unlink(missing_ok=True)
+            return
+        epoch = self.preview_epoch
+        self.preview_loading = True
+        future = self.executor.submit(read_preview_frame, filename)
+
+        def complete(frame):
+            if epoch != self.preview_epoch:
+                return
+            self.preview_loading = False
+            self.preview_frame.show_frame(frame)
+            self.stage_preview.show_frame(frame)
+            if self.preview_dialog is not None:
+                self.preview_dialog_frame.show_frame(frame)
+            self.preview_caption.setText(
+                "LEINWANDBILD · PAUSE"
+                if self.player.state["status"] == "paused"
+                else "LEINWANDBILD · LIVE"
+            )
+
+        def failed(error):
+            if epoch != self.preview_epoch:
+                return
+            self.preview_loading = False
+            self._preview_unavailable(f"Vorschaubild unlesbar: {error}")
+
+        self.jobs.append((future, complete, failed))
+
+    def _preview_unavailable(self, message: str):
+        self.preview_caption.setText("LEINWANDBILD · VORSCHAUFEHLER")
+        self.preview_frame.show_message(message, clear=True)
+        self.stage_preview.show_message(message, clear=True)
+        if self.preview_dialog is not None:
+            self.preview_dialog_frame.show_message(message, clear=True)
+
+    def _show_preview_dialog(self):
+        if self.preview_dialog is None:
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Lichtspiel · Leinwandvorschau")
+            dialog.setModal(False)
+            dialog.resize(800, 480)
+            layout = QVBoxLayout(dialog)
+            layout.setContentsMargins(18, 18, 18, 18)
+            layout.addWidget(label("LEINWANDBILD · KONTROLLVORSCHAU", "eyebrow"))
+            self.preview_dialog_frame = PreviewFrame()
+            layout.addWidget(self.preview_dialog_frame, 1)
+            layout.addWidget(
+                label(
+                    "Die Vorschau zeigt regelmäßig ein verkleinertes Bild des laufenden Players. Bild und Ton am Beamer selbst prüfen.",
+                    "hint",
+                )
+            )
+            self.preview_dialog = dialog
+        if self.preview_frame.frame.isNull():
+            self.preview_dialog_frame.show_message(
+                self.preview_frame.caption, clear=True
+            )
+        else:
+            self.preview_dialog_frame.show_frame(self.preview_frame.frame)
+        self.preview_dialog.show()
+        self.preview_dialog.raise_()
+
     def _control(self, action):
         try:
             action()
@@ -1455,6 +1840,7 @@ class MainWindow(QMainWindow):
             self.player.active() or self.recovery is not None
         )
         self.player.stop()
+        self.preview_timer.stop()
         self.wake_guard.close()
         if self.projection.active():
             self.projection.process.kill()

@@ -34,6 +34,8 @@ Trage für jeden Schritt **Bestanden**, **Fehlgeschlagen** oder **Nicht zutreffe
 | Einen Film von mindestens 90 Minuten ohne Schlafmodus durchlaufen lassen                                           |       |         |             |
 | Pause und Fortsetzen erhalten Bild, Ton und Clipposition                                                           |       |         |             |
 | Fortschrittsbalken und Restzeit stimmen bei Clipwechsel, Pause und Filmende                                        |       |         |             |
+| Kontrollvorschau zeigt den aktuellen Clip, lässt sich vergrößern und blockiert eine lange Wiedergabe nicht         |       |         |             |
+| Bei Pause bleibt das Kontrollbild stehen; bei Schwarzbild wird kein altes Filmbild gezeigt                         |       |         |             |
 | Während der Wiedergabe zu Licht, Mediathek und Bild & Ton wechseln: Vorführtasten und Fortschritt bleiben sichtbar |       |         |             |
 | Schwarzbild pausiert Bild und Ton; Fortsetzen stellt beides wieder her                                             |       |         |             |
 | Zum nächsten Clip wechseln; danach regulär beenden                                                                 |       |         |             |
@@ -50,17 +52,19 @@ Trage für jeden Schritt **Bestanden**, **Fehlgeschlagen** oder **Nicht zutreffe
 
 Die folgenden Schritte nur mit einer bewusst ausgewählten Testlampe durchführen. **Licht jetzt testen** sendet einen echten Befehl.
 
-| Schritt                                                              | Ergebnis | Beobachtung |
-| -------------------------------------------------------------------- | -------- | ----------- |
-| Verbindungstest und Vorschau verändern kein Licht                    |          |             |
-| Vorprogramm-Regel beim ersten Werbe-/Trailer-/Intro-Clip             |          |             |
-| Hauptfilm-Regel beim Filmstart                                       |          |             |
-| Pause und Fortsetzen wenden die erwartete Regel an                   |          |             |
-| Ende oder Stopp wendet die Ende-Regel an                             |          |             |
-| Netzwerkfehler wird gemeldet, ohne die Wiedergabe zu stoppen         |          |             |
-| Zwei Lampen oder eine Lichtgruppe erhalten dieselbe Helligkeitsregel |          |             |
-| Eine Szene wird beim gewählten Moment nur einmal ausgelöst           |          |             |
-| Schwarzbild verändert nur bei aktivierter Regel das Licht            |          |             |
-| Schnelle Wechsel senden keine veralteten, späteren Lichtbefehle      |          |             |
+| Schritt                                                                                      | Ergebnis | Beobachtung |
+| -------------------------------------------------------------------------------------------- | -------- | ----------- |
+| Verbindungstest und Vorschau verändern kein Licht                                            |          |             |
+| Vorprogramm-Regel beim ersten Werbe-/Trailer-/Intro-Clip                                     |          |             |
+| Hauptfilm-Regel beim Filmstart                                                               |          |             |
+| Pause und Fortsetzen wenden die erwartete Regel an                                           |          |             |
+| Ende oder Stopp wendet die Ende-Regel an                                                     |          |             |
+| Netzwerkfehler wird gemeldet, ohne die Wiedergabe zu stoppen                                 |          |             |
+| Zwei Lampen oder eine Lichtgruppe erhalten dieselbe Helligkeitsregel                         |          |             |
+| Eine Szene wird beim gewählten Moment nur einmal ausgelöst                                   |          |             |
+| Schwarzbild verändert nur bei aktivierter Regel das Licht                                    |          |             |
+| Schnelle Wechsel senden keine veralteten, späteren Lichtbefehle                              |          |             |
+| Lampenmarker auf 2D-Plan setzen, verschieben und nach App-Neustart prüfen                    |          |             |
+| Eigenen Grundriss wählen und wieder entfernen; Kartenbearbeitung löst keinen Lichtbefehl aus |          |             |
 
 Ein Fehlerbericht sollte den betroffenen Schritt, den sichtbaren Zustand in Lichtspiel, das Ergebnis auf Beamer/Lautsprecher/Lampe und die genauen Geräteangaben enthalten. Zugangstoken, private Videodateien und persönliche Daten gehören nicht in öffentliche Issues.
