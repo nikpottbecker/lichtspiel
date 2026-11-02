@@ -353,7 +353,7 @@ class MainWindow(QMainWindow):
         preview_column = QVBoxLayout()
         preview_column.setSpacing(4)
         preview_header = QHBoxLayout()
-        self.preview_caption = label("LEINWANDBILD · VORSCHAU", "eyebrow")
+        self.preview_caption = label("VORSCHAU", "eyebrow")
         self.preview_caption.setWordWrap(False)
         preview_header.addWidget(self.preview_caption)
         preview_header.addStretch()
@@ -364,7 +364,7 @@ class MainWindow(QMainWindow):
         preview_column.addLayout(preview_header)
         self.preview_frame = PreviewFrame()
         self.preview_frame.setFixedHeight(90)
-        self.preview_frame.setMaximumWidth(250)
+        self.preview_frame.setFixedWidth(170)
         self.preview_frame.activated.connect(self._show_preview_dialog)
         preview_column.addWidget(self.preview_frame, 1)
         live.addLayout(preview_column)
@@ -1118,10 +1118,10 @@ class MainWindow(QMainWindow):
             self.preview_timer.start()
             self.preview_frame.show_message("Vorschau wird angefordert …", clear=True)
             self.stage_preview.show_message("Vorschau wird angefordert …", clear=True)
-            self.preview_caption.setText("LEINWANDBILD · VORSCHAU")
+            self.preview_caption.setText("VORSCHAU")
         else:
             self.preview_timer.stop()
-            self.preview_caption.setText("LEINWANDBILD · AUS")
+            self.preview_caption.setText("VORSCHAU · AUS")
             self.preview_frame.show_message("Vorschau ausgeschaltet", clear=True)
             self.stage_preview.show_message("Vorschau ausgeschaltet", clear=True)
             if self.preview_dialog is not None:
@@ -1628,16 +1628,16 @@ class MainWindow(QMainWindow):
             self.stage_preview.show_message(message, clear=True)
             if self.preview_dialog is not None:
                 self.preview_dialog_frame.show_message(message, clear=True)
-            self.preview_caption.setText("LEINWANDBILD · VORSCHAU")
+            self.preview_caption.setText("VORSCHAU")
             if not active:
                 self.preview_last_index = -1
         elif status == "paused":
-            self.preview_caption.setText("LEINWANDBILD · PAUSE")
+            self.preview_caption.setText("VORSCHAU · PAUSE")
         if (
             self.preview_interval_ms == 0
             and self.preview_frame.caption != "Vorschau ausgeschaltet"
         ):
-            self.preview_caption.setText("LEINWANDBILD · AUS")
+            self.preview_caption.setText("VORSCHAU · AUS")
             self.preview_frame.show_message("Vorschau ausgeschaltet", clear=True)
             self.stage_preview.show_message("Vorschau ausgeschaltet", clear=True)
             if self.preview_dialog is not None:
@@ -1755,9 +1755,9 @@ class MainWindow(QMainWindow):
             if self.preview_dialog is not None:
                 self.preview_dialog_frame.show_frame(frame)
             self.preview_caption.setText(
-                "LEINWANDBILD · PAUSE"
+                "VORSCHAU · PAUSE"
                 if self.player.state["status"] == "paused"
-                else "LEINWANDBILD · LIVE"
+                else "VORSCHAU · LIVE"
             )
 
         def failed(error):
@@ -1769,7 +1769,7 @@ class MainWindow(QMainWindow):
         self.jobs.append((future, complete, failed))
 
     def _preview_unavailable(self, message: str):
-        self.preview_caption.setText("LEINWANDBILD · VORSCHAUFEHLER")
+        self.preview_caption.setText("VORSCHAU · FEHLER")
         self.preview_frame.show_message(message, clear=True)
         self.stage_preview.show_message(message, clear=True)
         if self.preview_dialog is not None:
