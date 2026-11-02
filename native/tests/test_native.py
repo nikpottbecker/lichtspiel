@@ -104,18 +104,40 @@ class NativeWindowTests(unittest.TestCase):
                 mock.patch.object(MainWindow, "_detect_mpv"),
             ):
                 window = MainWindow()
+                window.show()
+                self.app.processEvents()
                 self.assertEqual(window.pages.currentIndex(), 2)
                 self.assertEqual(window._onboarding_step(), "player")
+                self.assertFalse(window.setup_settings_surface.isVisible())
                 window.mpv = "/test/mpv"
                 window._update_onboarding()
                 self.assertEqual(window._onboarding_step(), "display")
-                window.display_combo.setCurrentIndex(1)
+                window.onboarding_action.click()
+                self.assertEqual(window.onboarding_stack.currentIndex(), 1)
+                self.assertEqual(
+                    json.loads((directory / "settings.json").read_text())[
+                        "nativeOnboardingStep"
+                    ],
+                    1,
+                )
+                resumed = MainWindow()
+                self.assertEqual(resumed.onboarding_stack.currentIndex(), 1)
+                resumed.close()
+                window.onboarding_display_combo.setCurrentIndex(1)
                 self.assertEqual(window._onboarding_step(), "projection")
+                self.assertEqual(window.display_combo.currentIndex(), 1)
+                window.onboarding_back.click()
+                self.assertEqual(window.onboarding_stack.currentIndex(), 0)
+                window.onboarding_action.click()
+                window.onboarding_action.click()
+                self.assertEqual(window.onboarding_stack.currentIndex(), 2)
                 window.projection_test_screen = window.native_display_id
                 window._projection_finished(True, "")
                 self.assertTrue(window.projection_confirm.isEnabled())
                 self.assertEqual(window._onboarding_step(), "projection")
                 window.projection_confirm.setChecked(True)
+                window.onboarding_action.click()
+                self.assertEqual(window.onboarding_stack.currentIndex(), 3)
                 self.assertEqual(window._onboarding_step(), "media")
                 window.project["library"] = [
                     {
@@ -142,6 +164,9 @@ class NativeWindowTests(unittest.TestCase):
                 window._poll_jobs()
                 self.assertTrue(window.native_onboarded)
                 self.assertEqual(window.pages.currentIndex(), 0)
+                window._set_page(2)
+                self.assertTrue(window.setup_settings_surface.isVisible())
+                self.assertFalse(window.onboarding_card.isVisible())
                 self.assertTrue(
                     json.loads((directory / "settings.json").read_text())[
                         "nativeOnboarded"

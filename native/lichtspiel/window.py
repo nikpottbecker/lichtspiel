@@ -143,9 +143,14 @@ class MainWindow(QMainWindow):
         self.preserve_recovery_on_close = False
         self.native_display_id = self._read_settings().get("nativeDisplayId", "")
         self.native_onboarded = self._read_settings().get("nativeOnboarded") is True
+        saved_step = self._read_settings().get("nativeOnboardingStep", 0)
+        self.onboarding_index = (
+            saved_step if type(saved_step) is int and 0 <= saved_step <= 3 else 0
+        )
         self.projection_checked_screen = ""
         self.projection_test_screen = ""
         self.mpv = ""
+        self.mpv_detection_done = False
         self.player = MpvPlayer(self)
         self.projection = ProjectionTest(self)
         self.wake_guard = WakeGuard()
@@ -529,16 +534,17 @@ class MainWindow(QMainWindow):
         )
 
     def _build_setup(self):
-        _, column = self._page(
+        _, page_column = self._page(
             "Einrichtung",
             "Bild & Ton",
             "Regie am Rechner, Film über einen eigenen Player auf der Leinwand.",
         )
         self.onboarding_card = QFrame()
         self.onboarding_card.setObjectName("onboardingCard")
+        self.onboarding_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         guide = QVBoxLayout(self.onboarding_card)
-        guide.setContentsMargins(20, 16, 20, 18)
-        guide.setSpacing(8)
+        guide.setContentsMargins(24, 22, 24, 24)
+        guide.setSpacing(14)
         self.onboarding_steps = label(
             "01 PLAYER   /   02 AUSGABE   /   03 TEST   /   04 MEDIEN", "eyebrow"
         )
@@ -547,12 +553,92 @@ class MainWindow(QMainWindow):
         guide.addWidget(self.onboarding_title)
         self.onboarding_description = label("", "hint")
         guide.addWidget(self.onboarding_description)
+        self.onboarding_stack = QStackedWidget()
+        self.onboarding_stack.setObjectName("onboardingStack")
+        for _ in range(4):
+            step_page = QWidget()
+            step_page.setObjectName("onboardingStep")
+            step_layout = QVBoxLayout(step_page)
+            step_layout.setContentsMargins(0, 8, 0, 8)
+            step_layout.setSpacing(12)
+            step_layout.setAlignment(Qt.AlignTop)
+            self.onboarding_stack.addWidget(step_page)
+        guide.addWidget(self.onboarding_stack)
+
+        player_step = self.onboarding_stack.widget(0).layout()
+        self.onboarding_player = label("", "sectionTitle")
+        player_step.addWidget(self.onboarding_player)
+        player_tools = QHBoxLayout()
+        player_tools.addWidget(button("mpv auswählen", self._choose_mpv))
+        player_tools.addWidget(button("Erneut suchen", self._detect_mpv))
+        player_tools.addStretch()
+        player_step.addLayout(player_tools)
+
+        output_step = self.onboarding_stack.widget(1).layout()
+        output_step.addWidget(label("Beamer / Bildschirm", "eyebrow"))
+        self.onboarding_display_combo = QComboBox()
+        self.onboarding_display_combo.currentIndexChanged.connect(
+            self._onboarding_display_changed
+        )
+        output_step.addWidget(self.onboarding_display_combo)
+        output_step.addWidget(label("Tonausgabe", "eyebrow"))
+        self.onboarding_audio_combo = QComboBox()
+        self.onboarding_audio_combo.currentIndexChanged.connect(
+            self._onboarding_audio_changed
+        )
+        output_step.addWidget(self.onboarding_audio_combo)
+        output_step.addWidget(
+            label(
+                "Verwende einen erweiterten Desktop. Die Testkarte prüft keinen Ton.",
+                "hint",
+            )
+        )
+
+        projection_step = self.onboarding_stack.widget(2).layout()
+        self.onboarding_test_button = button(
+            "Testkarte auf dem Beamer zeigen", self._test_projection, "primary"
+        )
+        projection_step.addWidget(self.onboarding_test_button)
+        self.projection_confirm = QCheckBox(
+            "Rahmen und Ecken auf dem richtigen Beamer selbst geprüft"
+        )
+        self.projection_confirm.setEnabled(False)
+        self.projection_confirm.toggled.connect(self._update_onboarding)
+        projection_step.addWidget(self.projection_confirm)
+        projection_step.addWidget(
+            label(
+                "Die Testkarte läuft 12 Sekunden. Bestätige erst nach der Sichtprüfung.",
+                "hint",
+            )
+        )
+
+        media_step = self.onboarding_stack.widget(3).layout()
+        self.onboarding_media_count = label(
+            "Noch keine Clips im Ablauf", "sectionTitle"
+        )
+        media_step.addWidget(self.onboarding_media_count)
+        media_step.addWidget(button("Medien hinzufügen", self._import_media))
+        media_step.addWidget(
+            label(
+                "Die Originaldateien bleiben an ihrem Speicherort. Prüfe danach einen kurzen Clip mit Ton.",
+                "hint",
+            )
+        )
+
         guide_row = QHBoxLayout()
+        self.onboarding_back = button("Zurück", self._onboarding_back)
+        guide_row.addWidget(self.onboarding_back)
+        guide_row.addStretch()
         self.onboarding_action = button("Weiter", self._onboarding_action, "primary")
         guide_row.addWidget(self.onboarding_action)
-        guide_row.addStretch()
         guide.addLayout(guide_row)
-        column.addWidget(self.onboarding_card)
+        page_column.addWidget(self.onboarding_card)
+
+        self.setup_settings_surface = QWidget()
+        self.setup_settings_surface.setObjectName("setupSettings")
+        column = QVBoxLayout(self.setup_settings_surface)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(14)
         column.addWidget(label("WIEDERGABE", "eyebrow"))
         self.player_path = label("", "muted")
         column.addWidget(self.player_path)
@@ -573,12 +659,6 @@ class MainWindow(QMainWindow):
             "Testkarte auf dem Beamer zeigen", self._test_projection
         )
         column.addWidget(self.test_button)
-        self.projection_confirm = QCheckBox(
-            "Testkarte auf dem gewählten Beamer selbst geprüft"
-        )
-        self.projection_confirm.setEnabled(False)
-        self.projection_confirm.toggled.connect(self._update_onboarding)
-        column.addWidget(self.projection_confirm)
         column.addWidget(
             label(
                 "Die Testkarte läuft 12 Sekunden über mpv. Prüfe Rahmen, Ecken und Schärfe direkt am Beamer.",
@@ -620,6 +700,7 @@ class MainWindow(QMainWindow):
             )
         )
         column.addStretch()
+        page_column.addWidget(self.setup_settings_surface)
 
     def _build_lighting(self):
         _, page_column = self._page(
@@ -1199,63 +1280,84 @@ class MainWindow(QMainWindow):
 
     def _update_onboarding(self, _checked=None):
         self.onboarding_card.setVisible(not self.native_onboarded)
+        self.setup_settings_surface.setVisible(self.native_onboarded)
+        self.page_headers[2].setVisible(self.native_onboarded)
         if self.native_onboarded:
             return
-        step = self._onboarding_step()
-        copy = {
-            "player": (
-                "01 / 04 · Player",
-                "Installiere mpv und wähle die ausführbare Datei. Lichtspiel sucht bereits automatisch danach.",
-                "mpv auswählen",
-            ),
-            "display": (
-                "02 / 04 · Leinwand",
-                "Wähle den Beamer als erweiterten Bildschirm. Die Regie bleibt auf deinem Rechner.",
-                "Ausgabe wählen",
-            ),
-            "projection": (
-                "03 / 04 · Bild prüfen",
-                "Zeige die Testkarte und bestätige erst danach, dass sie auf dem richtigen Beamer vollständig sichtbar war.",
-                "Bild am Beamer geprüft"
-                if self.projection_checked_screen == self.native_display_id
-                else "Testkarte zeigen",
-            ),
-            "media": (
-                "04 / 04 · Ablauf anlegen",
-                "Importiere mindestens einen Clip. Ton und Bild solltest du anschließend mit einem kurzen Clip prüfen.",
-                "Medien hinzufügen",
-            ),
-            "ready": (
-                "Bereit für die Regie",
-                "Player, Ausgabebildschirm und Sichtprüfung sind erfasst. Die Medien werden vor dem Abschluss nochmals geprüft.",
-                "Einrichtung abschließen",
-            ),
-        }
-        title, description, action = copy[step]
+        max_index = {
+            "player": 0,
+            "display": 1,
+            "projection": 2,
+            "media": 3,
+            "ready": 3,
+        }[self._onboarding_step()]
+        if self.onboarding_index > max_index and (
+            max_index > 0 or self.mpv_detection_done
+        ):
+            self.onboarding_index = max_index
+            self._save_setting("nativeOnboardingStep", max_index)
+        self.onboarding_stack.setCurrentIndex(self.onboarding_index)
+        self.onboarding_stack.setFixedHeight(
+            (110, 215, 145, 150)[self.onboarding_index]
+        )
+        titles = (
+            "01 / 04 · Player",
+            "02 / 04 · Leinwand & Ton",
+            "03 / 04 · Bild prüfen",
+            "04 / 04 · Ablauf anlegen",
+        )
+        descriptions = (
+            "Lichtspiel sucht mpv automatisch. Du kannst die ausführbare Datei auch selbst auswählen.",
+            "Wähle den Beamer als erweiterten Bildschirm und die gewünschte Tonausgabe.",
+            "Zeige die Testkarte und prüfe Rahmen und Ecken direkt auf dem Beamer.",
+            "Importiere mindestens einen Clip. Vor dem Abschluss prüft Lichtspiel alle Dateien im Ablauf.",
+        )
+        title = titles[self.onboarding_index]
+        description = descriptions[self.onboarding_index]
         self.onboarding_title.setText(title)
         self.onboarding_description.setText(description)
-        self.onboarding_action.setText(action)
+        self.onboarding_steps.setText(
+            "   /   ".join(
+                f"{'●' if index == self.onboarding_index else '○'} {name}"
+                for index, name in enumerate(("PLAYER", "AUSGABE", "TEST", "MEDIEN"))
+            )
+        )
+        self.onboarding_player.setText(self.mpv or "mpv noch nicht gefunden")
+        count = len(self.project["queue"])
+        self.onboarding_media_count.setText(
+            f"{count} Clip{'s' if count != 1 else ''} im Ablauf"
+            if count
+            else "Noch keine Clips im Ablauf"
+        )
+        self.onboarding_back.setEnabled(self.onboarding_index > 0)
+        self.onboarding_action.setText(
+            "Einrichtung abschließen" if self.onboarding_index == 3 else "Weiter"
+        )
         self.onboarding_action.setEnabled(
-            step != "projection"
-            or self.projection_checked_screen == self.native_display_id
-            or not self.projection.active()
+            (
+                bool(self.mpv),
+                bool(self.mpv) and self._selected_screen_index() >= 0,
+                bool(self.mpv)
+                and self._selected_screen_index() >= 0
+                and self.projection_confirm.isChecked()
+                and self.projection_checked_screen == self.native_display_id,
+                self._onboarding_step() == "ready",
+            )[self.onboarding_index]
         )
 
+    def _set_onboarding_index(self, index: int):
+        self.onboarding_index = max(0, min(3, index))
+        self._save_setting("nativeOnboardingStep", self.onboarding_index)
+        self._update_onboarding()
+        self.pages.widget(2).verticalScrollBar().setValue(0)
+
+    def _onboarding_back(self):
+        self._set_onboarding_index(self.onboarding_index - 1)
+
     def _onboarding_action(self):
-        step = self._onboarding_step()
-        if step == "player":
-            self._choose_mpv()
-        elif step == "display":
-            self.display_combo.setFocus()
-            self.pages.currentWidget().ensureWidgetVisible(self.display_combo)
-        elif step == "projection":
-            if self.projection_checked_screen == self.native_display_id:
-                self.projection_confirm.setChecked(True)
-            else:
-                self._test_projection()
-        elif step == "media":
-            self._set_page(1)
-            self._import_media()
+        if self.onboarding_index < 3:
+            if self.onboarding_action.isEnabled():
+                self._set_onboarding_index(self.onboarding_index + 1)
         else:
             self._finish_onboarding()
 
@@ -1325,6 +1427,14 @@ class MainWindow(QMainWindow):
         selected = self.display_combo.findData(self.native_display_id)
         self.display_combo.setCurrentIndex(max(0, selected))
         self.display_combo.blockSignals(False)
+        self.onboarding_display_combo.blockSignals(True)
+        self.onboarding_display_combo.clear()
+        for index in range(self.display_combo.count()):
+            self.onboarding_display_combo.addItem(
+                self.display_combo.itemText(index), self.display_combo.itemData(index)
+            )
+        self.onboarding_display_combo.setCurrentIndex(self.display_combo.currentIndex())
+        self.onboarding_display_combo.blockSignals(False)
         self._display_info()
 
     def _refresh_audio(self, devices):
@@ -1337,6 +1447,14 @@ class MainWindow(QMainWindow):
         index = self.audio_combo.findData(self.project.get("audioDevice", "auto"))
         self.audio_combo.setCurrentIndex(max(0, index))
         self.audio_combo.blockSignals(False)
+        self.onboarding_audio_combo.blockSignals(True)
+        self.onboarding_audio_combo.clear()
+        for number in range(self.audio_combo.count()):
+            self.onboarding_audio_combo.addItem(
+                self.audio_combo.itemText(number), self.audio_combo.itemData(number)
+            )
+        self.onboarding_audio_combo.setCurrentIndex(self.audio_combo.currentIndex())
+        self.onboarding_audio_combo.blockSignals(False)
 
     def _load_audio(self):
         binary = self.mpv
@@ -1358,9 +1476,21 @@ class MainWindow(QMainWindow):
         self.test_button.setEnabled(
             index >= 0 and bool(self.mpv) and not self.projection.active()
         )
+        self.onboarding_test_button.setEnabled(self.test_button.isEnabled())
+
+    def _onboarding_display_changed(self, index: int):
+        if index != self.display_combo.currentIndex():
+            self.display_combo.setCurrentIndex(index)
+
+    def _onboarding_audio_changed(self, index: int):
+        if index != self.audio_combo.currentIndex():
+            self.audio_combo.setCurrentIndex(index)
 
     def _display_changed(self, _index):
         self.native_display_id = self.display_combo.currentData() or ""
+        self.onboarding_display_combo.blockSignals(True)
+        self.onboarding_display_combo.setCurrentIndex(self.display_combo.currentIndex())
+        self.onboarding_display_combo.blockSignals(False)
         self._save_setting("nativeDisplayId", self.native_display_id)
         self.projection_confirm.setChecked(False)
         self.projection_confirm.setEnabled(False)
@@ -1370,6 +1500,9 @@ class MainWindow(QMainWindow):
 
     def _audio_changed(self, _index):
         self.project["audioDevice"] = self.audio_combo.currentData() or "auto"
+        self.onboarding_audio_combo.blockSignals(True)
+        self.onboarding_audio_combo.setCurrentIndex(self.audio_combo.currentIndex())
+        self.onboarding_audio_combo.blockSignals(False)
         self._save()
 
     def _preview_interval_changed(self, _index):
@@ -1566,6 +1699,7 @@ class MainWindow(QMainWindow):
                 self.projection_confirm.setEnabled(False)
                 self.projection_checked_screen = ""
             self.mpv = found
+            self.mpv_detection_done = True
             self._save_setting("mpvPath", found)
             self._refresh_all()
             self.status.setText("mpv ist bereit.")
@@ -1582,6 +1716,7 @@ class MainWindow(QMainWindow):
                 self.projection_confirm.setEnabled(False)
                 self.projection_checked_screen = ""
             self.mpv = found
+            self.mpv_detection_done = True
             self._refresh_all()
             self.status.setText(
                 "mpv gefunden." if self.mpv else "mpv wurde nicht gefunden."
@@ -1606,6 +1741,7 @@ class MainWindow(QMainWindow):
             self.display_combo.setEnabled(False)
             self._sync_wake()
             self.test_button.setEnabled(False)
+            self.onboarding_test_button.setEnabled(False)
             self.status.setText("Testkarte wird 12 Sekunden auf der Ausgabe gezeigt.")
             self._update_onboarding()
         except RuntimeError as error:

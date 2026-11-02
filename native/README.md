@@ -59,7 +59,7 @@ Während einer Vorstellung rückt die Regieseite den laufenden Ablauf nach oben.
 
 ![Bild- und Tonausgabe in der nativen Einrichtung](../docs/assets/native-setup.png)
 
-Bei der ersten Nutzung führt **Bild & Ton** durch Player, Ausgabebildschirm, Testkarte und Medienimport. Die Testkarte muss nach erfolgreichem Lauf auf dem gewählten Beamer selbst bestätigt werden. Ein Beamer- oder Playerwechsel setzt diese Bestätigung während der Einrichtung zurück. Der Abschluss prüft, ob alle Medien im Ablauf noch lesbar sind, und wird für die native App getrennt vom bisherigen Electron-Projektzustand gespeichert. Die Testkarte enthält keinen Ton; ein kurzer Clip mit der echten Audioverbindung bleibt als manuelle Prüfung nötig.
+Bei der ersten Nutzung führt ein eigener Vier-Schritte-Assistent unter **Bild & Ton** durch Player, Ausgabebildschirm und Ton, Testkarte sowie Medienimport. Er zeigt jeweils nur den aktuellen Schritt, bietet **Zurück** und **Weiter** und merkt sich die Position beim Neustart, soweit die Voraussetzungen noch gelten. Die Testkarte muss nach erfolgreichem Lauf auf dem gewählten Beamer selbst bestätigt werden; nach einem Neustart oder Beamer- beziehungsweise Playerwechsel ist dieser Schritt erneut nötig. Der Abschluss prüft, ob alle Medien im Ablauf noch lesbar sind, und wird für die native App getrennt vom bisherigen Electron-Projektzustand gespeichert. Die Testkarte enthält keinen Ton; ein kurzer Clip mit der echten Audioverbindung bleibt als manuelle Prüfung nötig.
 
 ![Geführte native Einrichtung](../docs/assets/native-onboarding.png)
 
