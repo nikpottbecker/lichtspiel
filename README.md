@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/native-preview.png" alt="Native Lichtspiel-Regie mit Leinwandvorschau, Ablauf und Vorführtasten" width="100%">
+  <img src="docs/assets/cover.png" alt="Lichtspiel-Banner mit weißem Projektorstrahl und Kinoleinwand" width="100%">
 </p>
 
 <h1 align="center">Lichtspiel</h1>
@@ -35,6 +35,10 @@ Für Heimkinos, Vereine und eigene Filmprojekte. Lokal auf deinem Rechner, ohne 
 > **Version 0.1.0 ist eine Entwicklungsvorschau aus dem Quellcode.** Signierte Installationspakete sind noch nicht veröffentlicht. Beamer, Audio und reale Lampen müssen am jeweiligen Mac- oder Windows-Aufbau geprüft werden.
 
 **Native Desktop-Vorschau:** Der Umbau auf eine Oberfläche aus Qt Widgets läuft. Sie verwendet keinen Chromium-Renderer; mpv bleibt der getrennte Player für die Leinwand. [Start, Funktionen und Grenzen der Qt-Version →](native/README.md)
+
+<p align="center">
+  <img src="docs/assets/native-preview.png" alt="Native Lichtspiel-Regie mit Leinwandvorschau, Ablauf und Vorführtasten" width="100%">
+</p>
 
 <p align="center">
   <img src="docs/assets/native-setup.png" alt="Bild- und Tonausgabe in der nativen Lichtspiel-App" width="100%">
