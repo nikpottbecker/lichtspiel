@@ -35,6 +35,9 @@ QPushButton#previewExpand:hover { color: #ffffff; background: #393939; }
 QPushButton#nav { background: transparent; border: 1px solid transparent; border-radius: 19px; text-align: center; padding: 8px 14px; color: #bcbcbc; font-size: 11px; font-weight: 750; letter-spacing: 1px; }
 QPushButton#nav:hover { background: #303030; color: #ffffff; }
 QPushButton#nav:checked { background: #eeeeee; color: #111111; border: 1px solid #ffffff; border-radius: 18px; }
+QPushButton#subnav { background: #202020; color: #bcbcbc; border: 1px solid #444444; border-radius: 18px; padding: 8px 16px; min-height: 18px; }
+QPushButton#subnav:hover { background: #303030; color: #ffffff; }
+QPushButton#subnav:checked { background: #ededed; color: #111111; border: 1px solid #ffffff; border-radius: 18px; font-weight: 700; }
 QLineEdit, QComboBox, QDateTimeEdit, QSpinBox { background: #202020; color: #f1f1f1; border: 1px solid #454545; border-radius: 8px; padding: 8px 10px; min-height: 20px; selection-background-color: #6e6e6e; }
 QLineEdit:focus, QComboBox:focus, QDateTimeEdit:focus, QSpinBox:focus, QListWidget:focus { border: 1px solid #d9d9d9; }
 QComboBox QAbstractItemView { background: #292929; color: #f1f1f1; selection-background-color: #575757; }

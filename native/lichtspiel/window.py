@@ -253,6 +253,7 @@ class MainWindow(QMainWindow):
         main.setContentsMargins(22, 18, 22, 18)
         main.setSpacing(12)
         self.pages = QStackedWidget()
+        self.page_headers = []
         main.addWidget(self.pages, 1)
         main.addWidget(rule())
         self.status = label("Bereit", "status")
@@ -263,6 +264,7 @@ class MainWindow(QMainWindow):
         self._build_library()
         self._build_setup()
         self._build_lighting()
+        self._update_compact_layout()
 
     def _page(
         self, eyebrow: str, title: str, description: str
@@ -273,7 +275,9 @@ class MainWindow(QMainWindow):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(14)
         column.setAlignment(Qt.AlignTop)
-        column.addWidget(AtmosphereHeader(eyebrow, title, description))
+        header = AtmosphereHeader(eyebrow, title, description)
+        self.page_headers.append(header)
+        column.addWidget(header)
         column.addSpacing(2)
         scroller = QScrollArea()
         scroller.setWidgetResizable(True)
@@ -281,6 +285,16 @@ class MainWindow(QMainWindow):
         scroller.setWidget(page)
         self.pages.addWidget(scroller)
         return page, column
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "page_headers"):
+            self._update_compact_layout()
+
+    def _update_compact_layout(self):
+        compact = self.height() < 760
+        for header in self.page_headers:
+            header.set_compact(compact)
 
     def _build_show(self):
         _, column = self._page(
@@ -576,11 +590,40 @@ class MainWindow(QMainWindow):
         column.addStretch()
 
     def _build_lighting(self):
-        _, column = self._page(
+        _, page_column = self._page(
             "Automation",
             "Kinolicht",
             "Optionale Home-Assistant-Regeln für die Vorstellung.",
         )
+        section_nav = QHBoxLayout()
+        section_nav.setSpacing(8)
+        self.light_section_buttons = []
+        self.light_section_widgets = []
+        for index, title in enumerate(("Verbindung", "Raumplan", "Lichtregeln")):
+            control = button(
+                title,
+                lambda _checked=False, section=index: self._set_light_section(section),
+                "subnav",
+            )
+            control.setCheckable(True)
+            section_nav.addWidget(control)
+            self.light_section_buttons.append(control)
+        section_nav.addStretch()
+        page_column.addLayout(section_nav)
+
+        def section_layout() -> QVBoxLayout:
+            section = QWidget()
+            section.setObjectName("lightSection")
+            section.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+            content = QVBoxLayout(section)
+            content.setContentsMargins(0, 0, 0, 0)
+            content.setSpacing(14)
+            content.setAlignment(Qt.AlignTop)
+            page_column.addWidget(section)
+            self.light_section_widgets.append(section)
+            return content
+
+        column = section_layout()
         self.light_enabled = QCheckBox("Automatische Lichtsteuerung aktivieren")
         column.addWidget(self.light_enabled)
         column.addWidget(label("HOME ASSISTANT", "eyebrow"))
@@ -620,7 +663,7 @@ class MainWindow(QMainWindow):
                 "hint",
             )
         )
-        column.addWidget(rule())
+        column = section_layout()
         column.addWidget(label("RAUMPLAN", "eyebrow"))
         column.addWidget(
             label(
@@ -654,7 +697,7 @@ class MainWindow(QMainWindow):
         column.addLayout(plan_row)
         self.room_plan_status = label("Noch keine Lampen markiert.", "hint")
         column.addWidget(self.room_plan_status)
-        column.addWidget(rule())
+        column = section_layout()
         column.addWidget(label("LICHTREGELN", "eyebrow"))
         self.light_rules = {}
         for event in EVENTS:
@@ -722,6 +765,18 @@ class MainWindow(QMainWindow):
         column.addWidget(self.light_preview)
         self.light_event.currentIndexChanged.connect(self._update_light_preview)
         column.addStretch()
+        self._set_light_section(0)
+
+    def _set_light_section(self, index: int):
+        for number, (control, section) in enumerate(
+            zip(self.light_section_buttons, self.light_section_widgets, strict=True)
+        ):
+            selected = number == index
+            control.setChecked(selected)
+            section.setVisible(selected)
+        if self.pages.count() > 3:
+            scroller = self.pages.widget(3)
+            scroller.verticalScrollBar().setValue(0)
 
     def _sync_rule_inputs(self, event: str):
         _enabled, mode, brightness_label, brightness, _transition, scene = (

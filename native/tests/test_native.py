@@ -101,10 +101,49 @@ class NativeWindowTests(unittest.TestCase):
             self.assertIsInstance(library_scroller, QScrollArea)
             self.assertEqual(library_scroller.verticalScrollBar().maximum(), 0)
             window._set_page(3)
+            window._set_light_section(2)
             self.app.processEvents()
             self.assertGreater(
                 window.pages.currentWidget().verticalScrollBar().maximum(), 0
             )
+            window.close()
+
+    def test_lighting_sections_keep_plan_and_rules_one_click_away(self):
+        with mock.patch(
+            "native.lichtspiel.window.load_project", return_value=empty_project()
+        ):
+            window = MainWindow()
+            window.resize(1260, 900)
+            window.show()
+            window._set_page(3)
+            window.light_section_buttons[1].click()
+            self.app.processEvents()
+            self.assertTrue(window.room_plan.isVisible())
+            self.assertFalse(window.light_url.isVisible())
+            self.assertTrue(window.light_section_buttons[1].isChecked())
+            window.light_section_buttons[2].click()
+            self.app.processEvents()
+            self.assertFalse(window.room_plan.isVisible())
+            self.assertTrue(next(iter(window.light_rules.values()))[0].isVisible())
+            window.close()
+
+    def test_small_window_compacts_heading_and_keeps_plan_accessible(self):
+        with mock.patch(
+            "native.lichtspiel.window.load_project", return_value=empty_project()
+        ):
+            window = MainWindow()
+            window.resize(900, 640)
+            window.show()
+            window._set_page(3)
+            window._set_light_section(1)
+            self.app.processEvents()
+            self.assertEqual(window.page_headers[3].height(), 82)
+            self.assertFalse(window.page_headers[3].description_label.isVisible())
+            self.assertTrue(window.room_plan.isVisible())
+            window.resize(1260, 900)
+            self.app.processEvents()
+            self.assertEqual(window.page_headers[3].height(), 128)
+            self.assertTrue(window.page_headers[3].description_label.isVisible())
             window.close()
 
     def test_live_controls_show_clip_and_show_progress(self):

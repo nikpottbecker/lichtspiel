@@ -8,10 +8,10 @@ Lichtspiel steuert über Home Assistant Kinolicht. Die bisherige Electron-App ve
 
 1. Richte deine Lampen in Home Assistant ein. Eine gemeinsam zu steuernde Gruppe muss dort als `light.*`-Entität verfügbar sein.
 2. Erstelle in deinem Home-Assistant-Profil ein **langlebiges Zugriffstoken**.
-3. Öffne in Lichtspiel **Lichtsteuerung** beziehungsweise in der Qt-App **Licht**. Lass die Automatik zunächst ausgeschaltet.
+3. Öffne in der Qt-App **Licht → Verbindung**. Lass die Automatik zunächst ausgeschaltet.
 4. Trage die Basisadresse ein, zum Beispiel `http://homeassistant.local:8123`, und füge den Token ein. Speichere die Verbindung.
 5. Klicke auf **Verbindung prüfen**. Der Test liest die erreichbaren Licht-Entitäten und Szenen, verändert aber keine Lampe. In der Qt-App müssen Änderungen vor dem Test gespeichert sein.
-6. Wähle die Lampe oder Lichtgruppe aus und passe die Regeln an.
+6. Wähle die Lampe oder Lichtgruppe aus. Unter **Raumplan** kannst du sie auf einer 2D-Skizze markieren; unter **Lichtregeln** legst du ihre Aktionen fest.
 7. Aktiviere bei Bedarf **Automatisch steuern** und speichere erneut.
 
 Die Adresse darf keine Zugangsdaten, `/api`-Erweiterung, Suchparameter oder Fragmente enthalten. Verwende eine direkt erreichbare Adresse: HTTP-Weiterleitungen werden nicht verfolgt.

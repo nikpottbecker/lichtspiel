@@ -19,9 +19,9 @@ class AtmosphereHeader(QWidget):
         super().__init__()
         self.setObjectName("atmosphereHeader")
         self.setFixedHeight(128)
-        column = QVBoxLayout(self)
-        column.setContentsMargins(26, 14, 26, 14)
-        column.setSpacing(5)
+        self.column = QVBoxLayout(self)
+        self.column.setContentsMargins(26, 14, 26, 14)
+        self.column.setSpacing(5)
         for copy, kind in (
             (eyebrow.upper(), "heroEyebrow"),
             (title, "heroTitle"),
@@ -31,8 +31,18 @@ class AtmosphereHeader(QWidget):
             item.setObjectName(kind)
             item.setWordWrap(True)
             item.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-            column.addWidget(item)
-        column.addStretch()
+            self.column.addWidget(item)
+            if kind == "heroDescription":
+                self.description_label = item
+        self.column.addStretch()
+
+    def set_compact(self, compact: bool):
+        self.setFixedHeight(82 if compact else 128)
+        if compact:
+            self.column.setContentsMargins(20, 8, 20, 8)
+        else:
+            self.column.setContentsMargins(26, 14, 26, 14)
+        self.description_label.setVisible(not compact)
 
     def paintEvent(self, _event):
         painter = QPainter(self)
