@@ -308,19 +308,22 @@ class MainWindow(QMainWindow):
         self.title_input.editingFinished.connect(self._save_title)
         column.addWidget(self.title_input)
         self.readiness = label("Startprüfung ausstehend", "hint")
-        readiness_row = QHBoxLayout()
+        self.readiness_surface = QWidget()
+        readiness_row = QHBoxLayout(self.readiness_surface)
+        readiness_row.setContentsMargins(0, 0, 0, 0)
         readiness_row.addWidget(self.readiness, 1)
         readiness_row.addWidget(button("Wiedergabe prüfen", self._check_readiness))
-        column.addLayout(readiness_row)
-        workbench_surface = QWidget()
-        workbench_surface.setFixedHeight(230)
-        workbench = QHBoxLayout(workbench_surface)
+        column.addWidget(self.readiness_surface)
+        self.workbench_surface = QWidget()
+        self.workbench_surface.setFixedHeight(230)
+        workbench = QHBoxLayout(self.workbench_surface)
         workbench.setContentsMargins(0, 0, 0, 0)
         workbench.setSpacing(16)
         queue_column = QVBoxLayout()
         queue_column.setSpacing(8)
         queue_header = QHBoxLayout()
-        queue_header.addWidget(label("ABLAUF", "eyebrow"))
+        self.queue_heading = label("ABLAUF", "eyebrow")
+        queue_header.addWidget(self.queue_heading)
         queue_header.addStretch()
         queue_column.addLayout(queue_header)
         self.queue_list = QListWidget()
@@ -333,10 +336,10 @@ class MainWindow(QMainWindow):
         for control in (self.move_up, self.move_down, self.remove_queue):
             queue_header.addWidget(control)
         workbench.addLayout(queue_column, 3)
-        stage_card = QFrame()
-        stage_card.setObjectName("stageCard")
-        stage_card.setMaximumHeight(220)
-        stage_column = QVBoxLayout(stage_card)
+        self.stage_card = QFrame()
+        self.stage_card.setObjectName("stageCard")
+        self.stage_card.setMaximumHeight(220)
+        stage_column = QVBoxLayout(self.stage_card)
         stage_column.setContentsMargins(14, 13, 14, 13)
         stage_column.setSpacing(10)
         stage_column.addWidget(label("LEINWAND · KONTROLLBILD", "eyebrow"))
@@ -347,9 +350,10 @@ class MainWindow(QMainWindow):
         stage_column.addWidget(self.stage_preview)
         stage_column.addWidget(label("Doppelklick für Großansicht", "hint"))
         stage_column.addStretch()
-        workbench.addWidget(stage_card, 2)
-        column.addWidget(workbench_surface)
-        column.addWidget(rule())
+        workbench.addWidget(self.stage_card, 2)
+        column.addWidget(self.workbench_surface)
+        self.show_rule = rule()
+        column.addWidget(self.show_rule)
         self.transport_surface = QWidget()
         self.transport_surface.setObjectName("transportSurface")
         transport_column = QVBoxLayout(self.transport_surface)
@@ -465,7 +469,9 @@ class MainWindow(QMainWindow):
             transport.addWidget(control, number // 3, number % 3)
         transport_column.addLayout(transport)
         self.content_layout.insertWidget(1, self.transport_surface)
-        schedule = QHBoxLayout()
+        self.schedule_surface = QWidget()
+        schedule = QHBoxLayout(self.schedule_surface)
+        schedule.setContentsMargins(0, 0, 0, 0)
         schedule.addWidget(label("Startzeit", "muted"))
         self.time_input = QDateTimeEdit(QDateTime.currentDateTime().addSecs(300))
         self.time_input.setCalendarPopup(True)
@@ -476,7 +482,7 @@ class MainWindow(QMainWindow):
         self.cancel_schedule = button("Planung löschen", self._cancel_schedule)
         schedule.addWidget(self.cancel_schedule)
         schedule.addStretch()
-        column.addLayout(schedule)
+        column.addWidget(self.schedule_surface)
 
     def _build_library(self):
         _, column = self._page(
@@ -1088,6 +1094,7 @@ class MainWindow(QMainWindow):
     def _set_page(self, index: int):
         self.pages.setCurrentIndex(index)
         self._sync_transport_visibility()
+        self._sync_show_mode()
         for number, nav in enumerate(self.nav_buttons):
             nav.setChecked(number == index)
 
@@ -1095,6 +1102,46 @@ class MainWindow(QMainWindow):
         if active is None:
             active = self.player.active()
         self.transport_surface.setVisible(self.pages.currentIndex() == 0 or active)
+
+    def _sync_show_mode(self):
+        """Give the live rundown the space used by preparation controls."""
+        active = self.player.active()
+        if getattr(self, "_show_mode_active", None) == active:
+            return
+        self._show_mode_active = active
+        self.page_headers[0].setVisible(not active)
+        self.title_input.setVisible(not active)
+        self.readiness_surface.setVisible(not active)
+        self.schedule_surface.setVisible(not active)
+        self.show_rule.setVisible(not active)
+        self.stage_card.setVisible(not active)
+        self.workbench_surface.setFixedHeight(205 if active else 230)
+        self.queue_heading.setText("LAUFENDER ABLAUF" if active else "ABLAUF")
+        for control in (self.move_up, self.move_down, self.remove_queue):
+            control.setVisible(not active)
+
+    def _render_queue_state(self, state: dict):
+        active = self.player.active()
+        index = state["index"] if active else -1
+        key = (active, index)
+        if getattr(self, "_queue_display_key", None) == key:
+            return
+        self._queue_display_key = key
+        media_items = self.player.items if active else queued_media(self.project)
+        for number, media in enumerate(media_items):
+            row = self.queue_list.item(number)
+            if row is None:
+                continue
+            marker = (
+                "→" if number == index else "✓" if active and number < index else " "
+            )
+            row.setText(
+                f"{marker}  {number + 1:02d}   {media.get('category', 'Film').upper():8}   "
+                f"{media.get('name', 'Ohne Titel')}   ·   {self._duration(media.get('duration', 0))}"
+            )
+        if active and 0 <= index < self.queue_list.count():
+            self.queue_list.setCurrentRow(index)
+            self.queue_list.scrollToItem(self.queue_list.item(index))
 
     def _refresh_all(self):
         self.title_input.setText(self.project.get("title", "Filmabend"))
@@ -1234,6 +1281,8 @@ class MainWindow(QMainWindow):
                 f"{index + 1:02d}   {media.get('category', 'Film').upper():8}   {media.get('name', 'Ohne Titel')}   ·   {self._duration(media.get('duration', 0))}"
             )
         self.queue_list.setCurrentRow(min(selected_queue, self.queue_list.count() - 1))
+        self._queue_display_key = None
+        self._render_queue_state(self.player.state)
         self._library_selection(self.library_list.currentRow())
         self.readiness.setText("Ablauf geändert · Startprüfung erneut ausführen")
         self._refresh_recovery()
@@ -1729,6 +1778,8 @@ class MainWindow(QMainWindow):
                     "Vorschau ausgeschaltet", clear=True
                 )
         self._sync_transport_visibility(active)
+        self._sync_show_mode()
+        self._render_queue_state(state)
         measure = timing(state, self.player.items)
         self._persist_recovery(state)
         self._sync_wake()

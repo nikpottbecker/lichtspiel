@@ -20,19 +20,19 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 
 ## Stand des Umbaus
 
-| Bereich                                                   | Qt-Vorschau                                                                                                                  |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Projektdatei, Mediathek, Kategorien und geordneter Ablauf | Vorhandene Electron-Projektdatei wird gelesen und weiterverwendet                                                            |
-| mpv-Wiedergabe                                            | Separater Prozess mit asynchroner IPC; Pause, Fortsetzen, Schwarzbild, nächster Clip und Stopp                               |
-| Live-Regie                                                | Clip- und Gesamtablauf, Restzeiten, nächster Clip und Vorführtasten bleiben während der Wiedergabe auf allen Seiten sichtbar |
-| Leinwandvorschau                                          | Regelmäßig aktualisiertes Kontrollbild direkt aus mpv; vergrößerbar, ohne zweiten Videodecoder                               |
-| Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                                                      |
-| Wiederaufnahme                                            | Letzter Clip und ungefähre Position werden lokal gespeichert; Fortsetzen erfordert einen Klick und erneute Startprüfung      |
-| Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                                                          |
-| Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                                                |
-| Home Assistant                                            | Mehrere Lampen, Szenen oder Helligkeit je Ereignis, optional Schwarzbild, Gerätesuche                                        |
-| 2D-Lichtplan                                              | Verschiebbare Marker für gespeicherte Lampen, optional eigener Grundriss als lokales Bild                                    |
-| Kleine Fenster                                            | Regietasten bleiben sichtbar, der Ablauf scrollt                                                                             |
+| Bereich                                                   | Qt-Vorschau                                                                                                                                                                        |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Projektdatei, Mediathek, Kategorien und geordneter Ablauf | Vorhandene Electron-Projektdatei wird gelesen und weiterverwendet                                                                                                                  |
+| mpv-Wiedergabe                                            | Separater Prozess mit asynchroner IPC; Pause, Fortsetzen, Schwarzbild, nächster Clip und Stopp                                                                                     |
+| Live-Regie                                                | Laufender Ablauf mit Markierung für gespielte und aktuelle Clips, Clip- und Gesamtfortschritt, Restzeiten, nächster Clip und Vorführtasten bleiben während der Wiedergabe sichtbar |
+| Leinwandvorschau                                          | Regelmäßig aktualisiertes Kontrollbild direkt aus mpv; vergrößerbar, ohne zweiten Videodecoder                                                                                     |
+| Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                                                                                                            |
+| Wiederaufnahme                                            | Letzter Clip und ungefähre Position werden lokal gespeichert; Fortsetzen erfordert einen Klick und erneute Startprüfung                                                            |
+| Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                                                                                                                |
+| Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                                                                                                      |
+| Home Assistant                                            | Mehrere Lampen, Szenen oder Helligkeit je Ereignis, optional Schwarzbild, Gerätesuche                                                                                              |
+| 2D-Lichtplan                                              | Verschiebbare Marker für gespeicherte Lampen, optional eigener Grundriss als lokales Bild                                                                                          |
+| Kleine Fenster                                            | Regietasten bleiben sichtbar, der Ablauf scrollt                                                                                                                                   |
 
 Der Bildschirm wird für die Qt-Version als `nativeDisplayId` in `settings.json` gespeichert. Dadurch überschreibt sie die Electron-Bildschirmauswahl im gemeinsamen Projekt nicht. Öffne **nicht beide Apps gleichzeitig** mit demselben Projekt. Home-Assistant-Regeln können aus der bisherigen Konfiguration übernommen werden; das verschlüsselte Electron-Token ist nicht übertragbar. Gib es einmal in der Qt-App neu ein und aktiviere die Automatik dort ausdrücklich.
 
@@ -47,6 +47,12 @@ Während der Vorstellung bleibt die Regie auch beim Wechsel zur Licht- oder Einr
 Die Regie holt standardmäßig ungefähr alle 1,5 Sekunden ein JPEG-Kontrollbild **aus dem laufenden mpv-Prozess**. Es wird außerhalb des UI-Threads auf Monitorgröße verkleinert. Unter **Bild & Ton** lässt sich die Vorschau ausschalten oder auf 0,5 beziehungsweise 3 Sekunden stellen. Mit dem Pfeil am Bild oder einem Doppelklick öffnest du eine größere, nicht modale Ansicht. Bei Pause bleibt das letzte Bild stehen; Schwarzbild zeigt bewusst kein altes Bild. Ein Vorschaufehler wird nur in der Vorschau angezeigt und stoppt die Vorstellung nicht. Die Vorschau ist kein Ersatz für die Kontrolle von Bild und Ton direkt am Beamer. Die Abtastrate ist bewusst begrenzt; sie ist kein flüssiger zweiter Videostream.
 
 ![Native Regie mit einer simulierten Testkarte in der Leinwandvorschau](../docs/assets/native-preview.png)
+
+Während einer Vorstellung rückt die Regieseite den laufenden Ablauf nach oben. Titelbearbeitung, Startprüfung, Startplanung und die zweite Vorschau werden bis zum Ende der Wiedergabe ausgeblendet. Das Kontrollbild und die Vorführtasten bleiben darunter fest erreichbar; bei 900 × 640 Pixeln sind die aktuellen Clips ohne Scrollen sichtbar. Nach dem Stopp kehrt die Vorbereitung zurück. Die folgenden Bilder zeigen einen simulierten Wiedergabestand, keinen Test am Beamer.
+
+![Laufende Regie mit aktuellem Clip und Fortschritt](../docs/assets/native-regie-live.png)
+
+![Laufende Regie im kleinen Fenster](../docs/assets/native-regie-live-small.png)
 
 ![Leere Mediathek mit direktem Medienimport](../docs/assets/native-library.png)
 

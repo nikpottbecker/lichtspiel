@@ -28,6 +28,7 @@ Prüfe die Änderung mit passenden Logik-, UI- und Pakettests; sieh neue Oberfl�
 - [x] Bewusste Wiederaufnahme einer unterbrochenen Qt-Vorstellung nach Medien- und Ausgabeprüfung.
 - [x] Live-Regie bleibt während der Wiedergabe auch auf Medien-, Einrichtungs- und Lichtseite sichtbar.
 - [x] Native Kontrollvorschau aus dem laufenden mpv-Prozess und lokaler 2D-Raumplan für Lichtmarkierungen.
+- [x] Kompakte Live-Regie mit unmittelbar sichtbarem Ablauf, eindeutig markiertem aktuellen Clip und ohne doppelte Vorschau.
 - [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [x] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
 - [ ] Vorführprotokoll für Start, Eingriffe, Clipwechsel und Fehler sowie weitere Wiederherstellungsfälle.

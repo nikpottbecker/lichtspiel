@@ -165,6 +165,42 @@ class NativeWindowTests(unittest.TestCase):
             window.player.state["status"] = "idle"
             window.close()
 
+    def test_live_regie_prioritizes_rundown_and_restores_preparation(self):
+        project = empty_project()
+        project["library"] = [
+            {"id": "a", "name": "Trailer", "category": "Trailer", "duration": 30},
+            {"id": "b", "name": "Hauptfilm", "category": "Film", "duration": 90},
+        ]
+        project["queue"] = ["a", "b"]
+        with mock.patch("native.lichtspiel.window.load_project", return_value=project):
+            window = MainWindow()
+            window.resize(900, 640)
+            window.show()
+            window._set_page(0)
+            window.player.items = project["library"]
+            live = {"status": "playing", "index": 1, "position": 12, "duration": 90}
+            window.player.state = live
+            window._player_state(live)
+            self.app.processEvents()
+            self.assertFalse(window.page_headers[0].isVisible())
+            self.assertFalse(window.stage_card.isVisible())
+            self.assertFalse(window.schedule_surface.isVisible())
+            self.assertTrue(window.queue_list.isVisible())
+            self.assertTrue(window.preview_frame.isVisible())
+            self.assertTrue(window.stop_button.isVisible())
+            self.assertTrue(window.queue_list.item(0).text().startswith("✓"))
+            self.assertTrue(window.queue_list.item(1).text().startswith("→"))
+            self.assertEqual(window.workbench_surface.height(), 205)
+            idle = {"status": "idle", "index": 0, "position": 0, "duration": 0}
+            window.player.state = idle
+            window._player_state(idle)
+            self.app.processEvents()
+            self.assertTrue(window.page_headers[0].isVisible())
+            self.assertTrue(window.stage_card.isVisible())
+            self.assertTrue(window.schedule_surface.isVisible())
+            self.assertEqual(window.workbench_surface.height(), 230)
+            window.close()
+
     def test_next_cue_stays_inside_live_card_at_minimum_width(self):
         with mock.patch(
             "native.lichtspiel.window.load_project", return_value=empty_project()
