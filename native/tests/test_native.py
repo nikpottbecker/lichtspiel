@@ -9,7 +9,7 @@ from unittest import mock
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QScrollArea
 
 from native.lichtspiel.model import (
     empty_project,
@@ -86,6 +86,25 @@ class NativeWindowTests(unittest.TestCase):
             window = MainWindow()
             self.assertEqual(window.pages.count(), 4)
             self.assertEqual(window.pages.currentIndex(), 2)
+            window.close()
+
+    def test_short_page_does_not_inherit_lighting_scrollbar(self):
+        with mock.patch(
+            "native.lichtspiel.window.load_project", return_value=empty_project()
+        ):
+            window = MainWindow()
+            window.resize(1260, 900)
+            window.show()
+            window._set_page(1)
+            self.app.processEvents()
+            library_scroller = window.pages.currentWidget()
+            self.assertIsInstance(library_scroller, QScrollArea)
+            self.assertEqual(library_scroller.verticalScrollBar().maximum(), 0)
+            window._set_page(3)
+            self.app.processEvents()
+            self.assertGreater(
+                window.pages.currentWidget().verticalScrollBar().maximum(), 0
+            )
             window.close()
 
     def test_live_controls_show_clip_and_show_progress(self):

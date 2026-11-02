@@ -48,6 +48,10 @@ Die Regie holt standardmäßig ungefähr alle 1,5 Sekunden ein JPEG-Kontrollbild
 
 ![Native Regie mit einer simulierten Testkarte in der Leinwandvorschau](../docs/assets/native-preview.png)
 
+![Leere Mediathek mit direktem Medienimport](../docs/assets/native-library.png)
+
+![Bild- und Tonausgabe in der nativen Einrichtung](../docs/assets/native-setup.png)
+
 ![Vergrößerte Kontrollvorschau mit Testkarte](../docs/assets/native-preview-large.png)
 
 ![Lichtseite mit sichtbarer Live-Regie bei kleinem Fenster](../docs/assets/native-live-light-small.png)

@@ -1,8 +1,76 @@
 """Small native widgets used by the control room."""
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QColor, QImage, QPainter
-from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
+from PySide6.QtGui import (
+    QColor,
+    QImage,
+    QLinearGradient,
+    QPainter,
+    QPen,
+    QRadialGradient,
+)
+from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
+
+
+class AtmosphereHeader(QWidget):
+    """Native, static cinematic header; never part of the projector output."""
+
+    def __init__(self, eyebrow: str, title: str, description: str):
+        super().__init__()
+        self.setObjectName("atmosphereHeader")
+        self.setFixedHeight(128)
+        column = QVBoxLayout(self)
+        column.setContentsMargins(26, 14, 26, 14)
+        column.setSpacing(5)
+        for copy, kind in (
+            (eyebrow.upper(), "heroEyebrow"),
+            (title, "heroTitle"),
+            (description, "heroDescription"),
+        ):
+            item = QLabel(copy)
+            item.setObjectName(kind)
+            item.setWordWrap(True)
+            item.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+            column.addWidget(item)
+        column.addStretch()
+
+    def paintEvent(self, _event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        base = QLinearGradient(0, 0, self.width(), self.height())
+        base.setColorAt(0, QColor("#202020"))
+        base.setColorAt(0.55, QColor("#171717"))
+        base.setColorAt(1, QColor("#262626"))
+        painter.setPen(QPen(QColor("#666666"), 1))
+        painter.setBrush(base)
+        painter.drawRoundedRect(rect, 18, 18)
+
+        painter.save()
+        painter.setClipRect(self.rect().adjusted(2, 2, -2, -2))
+        glow = QRadialGradient(self.width() * 0.85, self.height() * 0.5, 250)
+        glow.setColorAt(0, QColor(255, 255, 255, 55))
+        glow.setColorAt(0.55, QColor(220, 220, 220, 22))
+        glow.setColorAt(1, QColor(220, 220, 220, 0))
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(glow)
+        painter.drawRect(self.rect())
+        rim_light = QRadialGradient(self.width() * 0.97, self.height() * 0.05, 160)
+        rim_light.setColorAt(0, QColor(255, 255, 255, 38))
+        rim_light.setColorAt(1, QColor(255, 255, 255, 0))
+        painter.setBrush(rim_light)
+        painter.drawRect(self.rect())
+        painter.setPen(QPen(QColor(255, 255, 255, 27), 1))
+        for offset in (0, 34, 68, 102):
+            painter.drawLine(
+                self.width() - 245 + offset,
+                self.height(),
+                self.width() - 90 + offset,
+                0,
+            )
+        painter.restore()
+        painter.setPen(QPen(QColor("#f2f2f2"), 3))
+        painter.drawLine(27, self.height() - 2, 105, self.height() - 2)
 
 
 class ElidedLabel(QLabel):
@@ -67,9 +135,9 @@ class PreviewFrame(QWidget):
 
     def paintEvent(self, _event):
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#09090d"))
+        painter.fillRect(self.rect(), QColor("#080808"))
         if self.frame.isNull():
-            painter.setPen(QColor("#aaa8b5"))
+            painter.setPen(QColor("#aaaaaa"))
             painter.drawText(
                 self.rect().adjusted(10, 10, -10, -10),
                 Qt.AlignCenter | Qt.TextWordWrap,
@@ -84,5 +152,5 @@ class PreviewFrame(QWidget):
                 y,
                 self.frame.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation),
             )
-        painter.setPen(QColor("#454350"))
+        painter.setPen(QColor("#4b4b4b"))
         painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
