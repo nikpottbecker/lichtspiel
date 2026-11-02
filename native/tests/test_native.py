@@ -119,6 +119,61 @@ class NativeWindowTests(unittest.TestCase):
             )
             window.close()
 
+    def test_live_transport_remains_visible_on_every_page_during_show(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = empty_project()
+            project["library"] = [
+                {
+                    "id": "film",
+                    "name": "Hauptfilm",
+                    "path": "/tmp/film.mp4",
+                    "category": "Film",
+                    "duration": 120,
+                }
+            ]
+            project["queue"] = ["film"]
+            with (
+                mock.patch(
+                    "native.lichtspiel.window.load_project", return_value=project
+                ),
+                mock.patch(
+                    "native.lichtspiel.window.data_directory",
+                    return_value=Path(temporary),
+                ),
+            ):
+                window = MainWindow()
+                window.resize(900, 640)
+                window.show()
+                window._set_page(3)
+                self.app.processEvents()
+                self.assertFalse(window.transport_surface.isVisible())
+                window.player.items = project["library"]
+                state = {
+                    "status": "playing",
+                    "index": 0,
+                    "position": 35,
+                    "duration": 120,
+                }
+                window.player.state = state
+                window._player_state(state)
+                self.app.processEvents()
+                self.assertTrue(window.transport_surface.isVisible())
+                for page in range(window.pages.count()):
+                    window._set_page(page)
+                    self.app.processEvents()
+                    self.assertTrue(window.transport_surface.isVisible())
+                    self.assertTrue(window.stop_button.isVisible())
+                    self.assertLessEqual(
+                        window.transport_surface.geometry().bottom(),
+                        window.content_layout.parentWidget().height(),
+                    )
+                window.player.stop()
+                window.jobs[-1][0].result(timeout=2)
+                window._set_page(3)
+                self.app.processEvents()
+                self.assertFalse(window.transport_surface.isVisible())
+                window.close()
+
     def test_light_network_error_does_not_open_modal_over_show_controls(self):
         with mock.patch(
             "native.lichtspiel.window.load_project", return_value=empty_project()

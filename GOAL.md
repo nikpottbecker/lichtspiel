@@ -26,6 +26,7 @@ Prüfe die Änderung mit passenden Logik-, UI- und Pakettests; sieh neue Oberfl�
 - [x] Erste native Qt-Regie ohne Chromium mit eigenem mpv-Prozess und fest sichtbaren Vorführtasten.
 - [x] Live-Fortschritt für Clip und Gesamtablauf sowie erweiterte Home-Assistant-Regeln in der Qt-Vorschau.
 - [x] Bewusste Wiederaufnahme einer unterbrochenen Qt-Vorstellung nach Medien- und Ausgabeprüfung.
+- [x] Live-Regie bleibt während der Wiedergabe auch auf Medien-, Einrichtungs- und Lichtseite sichtbar.
 - [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [ ] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
 - [ ] Vorführprotokoll für Start, Eingriffe, Clipwechsel und Fehler sowie weitere Wiederherstellungsfälle.

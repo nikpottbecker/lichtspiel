@@ -772,9 +772,14 @@ class MainWindow(QMainWindow):
 
     def _set_page(self, index: int):
         self.pages.setCurrentIndex(index)
-        self.transport_surface.setVisible(index == 0)
+        self._sync_transport_visibility()
         for number, nav in enumerate(self.nav_buttons):
             nav.setChecked(number == index)
+
+    def _sync_transport_visibility(self, active: bool | None = None):
+        if active is None:
+            active = self.player.active()
+        self.transport_surface.setVisible(self.pages.currentIndex() == 0 or active)
 
     def _refresh_all(self):
         self.title_input.setText(self.project.get("title", "Filmabend"))
@@ -1335,6 +1340,7 @@ class MainWindow(QMainWindow):
     def _player_state(self, state: dict):
         status = state["status"]
         active = status in ("starting", "playing", "paused", "blackout")
+        self._sync_transport_visibility(active)
         measure = timing(state, self.player.items)
         self._persist_recovery(state)
         self._sync_wake()
