@@ -67,9 +67,9 @@ class PreviewFrame(QWidget):
 
     def paintEvent(self, _event):
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#101213"))
+        painter.fillRect(self.rect(), QColor("#09090d"))
         if self.frame.isNull():
-            painter.setPen(QColor("#a3aaa8"))
+            painter.setPen(QColor("#aaa8b5"))
             painter.drawText(
                 self.rect().adjusted(10, 10, -10, -10),
                 Qt.AlignCenter | Qt.TextWordWrap,
@@ -84,5 +84,5 @@ class PreviewFrame(QWidget):
                 y,
                 self.frame.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation),
             )
-        painter.setPen(QColor("#444a49"))
+        painter.setPen(QColor("#454350"))
         painter.drawRect(self.rect().adjusted(0, 0, -1, -1))

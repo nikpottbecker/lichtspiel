@@ -86,14 +86,14 @@ class LightMarker(QGraphicsEllipseItem):
         if len(short_name) > 18:
             short_name = short_name[:17] + "…"
         self.label = QGraphicsSimpleTextItem(short_name, self)
-        self.label.setFont(QFont("Arial", 9))
+        self.label.setFont(QFont("Segoe UI", 9))
         self.label.setPos(17, -9)
 
     def set_active(self, active: bool):
-        color = QColor("#e1b37b") if active else QColor("#77807d")
+        color = QColor("#b391ff") if active else QColor("#777583")
         self.setBrush(QBrush(color))
-        self.setPen(QPen(QColor("#171a1a"), 2))
-        self.label.setBrush(QBrush(QColor("#ece8df") if active else QColor("#9aa19f")))
+        self.setPen(QPen(QColor("#17141f"), 2))
+        self.label.setBrush(QBrush(QColor("#f2eefb") if active else QColor("#aaa8b5")))
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
@@ -126,7 +126,7 @@ class RoomPlan(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setBackgroundBrush(QBrush(QColor("#171b1b")))
+        self.setBackgroundBrush(QBrush(QColor("#171720")))
         self.markers = {}
         self.editable = True
         self.background_item = None
@@ -153,21 +153,21 @@ class RoomPlan(QGraphicsView):
         self.background_item.setZValue(-1)
 
     def _draw_room(self):
-        grid = QPen(QColor("#252c2b"), 1)
+        grid = QPen(QColor("#292936"), 1)
         for x in range(ROOM_LEFT + 40, ROOM_LEFT + ROOM_WIDTH, 40):
             self.scene().addLine(x, ROOM_TOP, x, ROOM_TOP + ROOM_HEIGHT, grid)
         for y in range(ROOM_TOP + 40, ROOM_TOP + ROOM_HEIGHT, 40):
             self.scene().addLine(ROOM_LEFT, y, ROOM_LEFT + ROOM_WIDTH, y, grid)
-        wall = QPen(QColor("#69736f"), 3)
+        wall = QPen(QColor("#6e6a7c"), 3)
         self.scene().addRect(ROOM_LEFT, ROOM_TOP, ROOM_WIDTH, ROOM_HEIGHT, wall)
         self.scene().addRect(
-            220, 27, 200, 8, QPen(QColor("#d7aa76")), QBrush(QColor("#d7aa76"))
+            220, 27, 200, 8, QPen(QColor("#ad83f4")), QBrush(QColor("#ad83f4"))
         )
-        screen = self.scene().addText("LEINWAND", QFont("Arial", 8))
-        screen.setDefaultTextColor(QColor("#d7aa76"))
+        screen = self.scene().addText("LEINWAND", QFont("Segoe UI", 8))
+        screen.setDefaultTextColor(QColor("#ad83f4"))
         screen.setPos(290, 5)
-        entrance = self.scene().addText("EINGANG", QFont("Arial", 8))
-        entrance.setDefaultTextColor(QColor("#8e9994"))
+        entrance = self.scene().addText("EINGANG", QFont("Segoe UI", 8))
+        entrance.setDefaultTextColor(QColor("#aaa8b5"))
         entrance.setPos(288, 326)
 
     def resizeEvent(self, event):

@@ -74,6 +74,7 @@ def button(label: str, handler, kind: str = "") -> QPushButton:
 def label(text: str, kind: str = "") -> QLabel:
     control = QLabel(text)
     control.setWordWrap(True)
+    control.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
     if kind:
         control.setObjectName(kind)
     return control
@@ -220,13 +221,13 @@ class MainWindow(QMainWindow):
 
         sidebar = QWidget()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(220)
+        sidebar.setFixedWidth(208)
         side = QVBoxLayout(sidebar)
-        side.setContentsMargins(22, 30, 22, 25)
+        side.setContentsMargins(18, 27, 18, 22)
         side.setSpacing(8)
         side.addWidget(label("LICHTSPIEL", "brand"))
-        side.addWidget(label("DEINE KINOREGIE", "brandCaption"))
-        side.addSpacing(42)
+        side.addWidget(label("KINOREGIE", "brandCaption"))
+        side.addSpacing(38)
         self.nav_buttons = []
         for index, title in enumerate(("Regie", "Mediathek", "Bild && Ton", "Licht")):
             nav = button(
@@ -236,15 +237,16 @@ class MainWindow(QMainWindow):
             side.addWidget(nav)
             self.nav_buttons.append(nav)
         side.addStretch()
-        side.addWidget(label("Lokal auf deinem Rechner\nBildausgabe über mpv", "muted"))
+        side.addWidget(label("DESKTOP · LOKAL", "eyebrow"))
+        side.addWidget(label("Leinwand über mpv", "muted"))
         layout.addWidget(sidebar)
 
         content = QWidget()
         content.setObjectName("content")
         main = QVBoxLayout(content)
         self.content_layout = main
-        main.setContentsMargins(42, 32, 42, 28)
-        main.setSpacing(18)
+        main.setContentsMargins(34, 26, 34, 21)
+        main.setSpacing(14)
         self.pages = QStackedWidget()
         scroller = QScrollArea()
         scroller.setWidgetResizable(True)
@@ -268,11 +270,12 @@ class MainWindow(QMainWindow):
         page.setObjectName("page")
         column = QVBoxLayout(page)
         column.setContentsMargins(0, 0, 0, 0)
-        column.setSpacing(16)
+        column.setSpacing(14)
+        column.setAlignment(Qt.AlignTop)
         column.addWidget(label(eyebrow.upper(), "eyebrow"))
         column.addWidget(label(title, "pageTitle"))
         column.addWidget(label(description, "muted"))
-        column.addSpacing(12)
+        column.addSpacing(6)
         self.pages.addWidget(page)
         return page, column
 
@@ -288,14 +291,18 @@ class MainWindow(QMainWindow):
         self.title_input.editingFinished.connect(self._save_title)
         column.addWidget(self.title_input)
         column.addWidget(rule())
-        workbench = QHBoxLayout()
-        workbench.setSpacing(18)
+        workbench_surface = QWidget()
+        workbench_surface.setFixedHeight(270)
+        workbench = QHBoxLayout(workbench_surface)
+        workbench.setContentsMargins(0, 0, 0, 0)
+        workbench.setSpacing(16)
         queue_column = QVBoxLayout()
         queue_column.setSpacing(10)
         queue_column.addWidget(label("ABLAUF", "eyebrow"))
         self.queue_list = QListWidget()
         self.queue_list.setAccessibleName("Ablauf")
-        self.queue_list.setMinimumHeight(220)
+        self.queue_list.setMinimumHeight(190)
+        self.queue_list.setMaximumHeight(240)
         queue_column.addWidget(self.queue_list, 1)
         row = QHBoxLayout()
         self.move_up = button("Nach oben", lambda: self._move_queue(-1))
@@ -306,28 +313,32 @@ class MainWindow(QMainWindow):
         row.addStretch()
         queue_column.addLayout(row)
         workbench.addLayout(queue_column, 3)
-        stage_column = QVBoxLayout()
+        stage_card = QFrame()
+        stage_card.setObjectName("stageCard")
+        stage_card.setMaximumHeight(260)
+        stage_column = QVBoxLayout(stage_card)
+        stage_column.setContentsMargins(14, 13, 14, 13)
         stage_column.setSpacing(10)
-        stage_column.addWidget(label("LEINWANDBILD", "eyebrow"))
+        stage_column.addWidget(label("LEINWAND · KONTROLLBILD", "eyebrow"))
         self.stage_preview = PreviewFrame()
         self.stage_preview.setMinimumWidth(230)
-        self.stage_preview.setFixedHeight(220)
+        self.stage_preview.setFixedHeight(175)
         self.stage_preview.activated.connect(self._show_preview_dialog)
         stage_column.addWidget(self.stage_preview)
-        stage_column.addWidget(
-            label("Kontrollbild · Doppelklick für Großansicht", "hint")
-        )
+        stage_column.addWidget(label("Doppelklick für Großansicht", "hint"))
         stage_column.addStretch()
-        workbench.addLayout(stage_column, 2)
-        column.addLayout(workbench, 1)
+        workbench.addWidget(stage_card, 2)
+        column.addWidget(workbench_surface)
         self.readiness = label("Startprüfung ausstehend", "hint")
-        column.addWidget(self.readiness)
-        column.addWidget(button("Jetzt prüfen", self._check_readiness))
+        readiness_row = QHBoxLayout()
+        readiness_row.addWidget(self.readiness, 1)
+        readiness_row.addWidget(button("Wiedergabe prüfen", self._check_readiness))
+        column.addLayout(readiness_row)
         column.addWidget(rule())
         self.transport_surface = QWidget()
         self.transport_surface.setObjectName("transportSurface")
         transport_column = QVBoxLayout(self.transport_surface)
-        transport_column.setContentsMargins(0, 12, 0, 0)
+        transport_column.setContentsMargins(0, 10, 0, 0)
         transport_column.setSpacing(10)
         self.recovery_card = QFrame()
         self.recovery_card.setObjectName("recoveryCard")
@@ -353,7 +364,7 @@ class MainWindow(QMainWindow):
         preview_column = QVBoxLayout()
         preview_column.setSpacing(4)
         preview_header = QHBoxLayout()
-        self.preview_caption = label("VORSCHAU", "eyebrow")
+        self.preview_caption = label("LIVE-MONITOR", "eyebrow")
         self.preview_caption.setWordWrap(False)
         preview_header.addWidget(self.preview_caption)
         preview_header.addStretch()
@@ -459,7 +470,14 @@ class MainWindow(QMainWindow):
             "Dateien bleiben an ihrem Speicherort. Der Ablauf enthält Verweise.",
         )
         column.addWidget(label("IMPORTIERTE MEDIEN", "eyebrow"))
+        self.library_empty = label(
+            "Noch keine Medien vorhanden. Füge Videos hinzu und ordne sie anschließend im Ablauf an.",
+            "hint",
+        )
+        column.addWidget(self.library_empty)
         self.library_list = QListWidget()
+        self.library_list.setMinimumHeight(240)
+        self.library_list.setMaximumHeight(380)
         self.library_list.itemDoubleClicked.connect(lambda _item: self._add_to_queue())
         self.library_list.currentRowChanged.connect(self._library_selection)
         column.addWidget(self.library_list, 1)
@@ -468,7 +486,10 @@ class MainWindow(QMainWindow):
         row.addWidget(self.import_button)
         self.add_queue_button = button("Zum Ablauf", self._add_to_queue)
         row.addWidget(self.add_queue_button)
-        row.addWidget(button("Aus Mediathek entfernen", self._remove_library))
+        self.remove_library_button = button(
+            "Aus Mediathek entfernen", self._remove_library
+        )
+        row.addWidget(self.remove_library_button)
         row.addStretch()
         column.addLayout(row)
         category_row = QHBoxLayout()
@@ -1148,6 +1169,9 @@ class MainWindow(QMainWindow):
             min(selected_library, self.library_list.count() - 1)
         )
         self.library_list.blockSignals(False)
+        has_media = self.library_list.count() > 0
+        self.library_list.setVisible(has_media)
+        self.library_empty.setVisible(not has_media)
         self.queue_list.clear()
         for index, media in enumerate(queued_media(self.project)):
             self.queue_list.addItem(
@@ -1169,6 +1193,10 @@ class MainWindow(QMainWindow):
         )
 
     def _library_selection(self, row: int):
+        can_edit = not self.player.active() and 0 <= row < len(self.project["library"])
+        self.add_queue_button.setEnabled(can_edit)
+        self.remove_library_button.setEnabled(can_edit)
+        self.category_combo.setEnabled(can_edit)
         self.category_combo.blockSignals(True)
         category = (
             self.project["library"][row].get("category", "Film")
@@ -1659,8 +1687,10 @@ class MainWindow(QMainWindow):
         self.choose_background_button.setEnabled(not active)
         self.clear_background_button.setEnabled(not active)
         self.import_button.setEnabled(not active and not self.import_pending)
-        self.add_queue_button.setEnabled(not active)
-        self.category_combo.setEnabled(not active)
+        has_selection = 0 <= self.library_list.currentRow() < len(self.project["library"])
+        self.add_queue_button.setEnabled(not active and has_selection)
+        self.remove_library_button.setEnabled(not active and has_selection)
+        self.category_combo.setEnabled(not active and has_selection)
         self.start_button.setEnabled(
             not active
             and not self.import_pending
