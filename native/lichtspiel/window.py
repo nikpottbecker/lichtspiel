@@ -1687,7 +1687,9 @@ class MainWindow(QMainWindow):
         self.choose_background_button.setEnabled(not active)
         self.clear_background_button.setEnabled(not active)
         self.import_button.setEnabled(not active and not self.import_pending)
-        has_selection = 0 <= self.library_list.currentRow() < len(self.project["library"])
+        has_selection = (
+            0 <= self.library_list.currentRow() < len(self.project["library"])
+        )
         self.add_queue_button.setEnabled(not active and has_selection)
         self.remove_library_button.setEnabled(not active and has_selection)
         self.category_combo.setEnabled(not active and has_selection)
