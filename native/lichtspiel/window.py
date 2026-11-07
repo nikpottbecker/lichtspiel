@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
+    QPlainTextEdit,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -36,6 +37,7 @@ from PySide6.QtWidgets import (
 )
 
 from .awake import WakeGuard
+from .journal import append_event, format_events, read_events
 from .lighting import EVENTS, LABELS, LightingController, normalize_config
 from .model import (
     atomic_json,
@@ -122,6 +124,11 @@ class MainWindow(QMainWindow):
             else 1500
         )
         self.recovery_path = data_directory() / "show-recovery.json"
+        self.journal_path = data_directory() / "show-journal.jsonl"
+        self.show_run_id = ""
+        self.journal_last_status = "idle"
+        self.journal_last_index = 0
+        self.journal_dialog = None
         self.room_plan_path = data_directory() / "room-plan.json"
         self.room_background_path = data_directory() / "room-background.png"
         self.room_plan_error = ""
@@ -166,6 +173,7 @@ class MainWindow(QMainWindow):
         self.scheduled_at: float | None = None
         self._build()
         self.player.state_changed.connect(self._player_state)
+        self.player.state_changed.connect(self._journal_state)
         self.player.frame_ready.connect(self._preview_frame_ready)
         self.player.preview_unavailable.connect(self._preview_unavailable)
         self.preview_loading = False
@@ -262,9 +270,15 @@ class MainWindow(QMainWindow):
         self.page_headers = []
         main.addWidget(self.pages, 1)
         main.addWidget(rule())
+        status_row = QHBoxLayout()
+        status_row.setSpacing(12)
         self.status = label("Bereit", "status")
         self.status.setAccessibleName("Statusmeldung")
-        main.addWidget(self.status)
+        status_row.addWidget(self.status, 1)
+        self.journal_button = button("Protokoll", self._open_journal, "journalLink")
+        self.journal_button.setAccessibleName("Vorführprotokoll öffnen")
+        status_row.addWidget(self.journal_button)
+        main.addLayout(status_row)
         layout.addWidget(content, 1)
         self._build_show()
         self._build_library()
@@ -2031,6 +2045,110 @@ class MainWindow(QMainWindow):
         else:
             self._start_show()
 
+    def _record_event(self, kind: str, message: str):
+        if not self.show_run_id:
+            return
+        event = {"run": self.show_run_id, "kind": kind, "text": message}
+        try:
+            future = self.recovery_executor.submit(
+                append_event, self.journal_path, event
+            )
+        except RuntimeError as error:
+            self.journal_button.setToolTip(f"Protokoll nicht gespeichert: {error}")
+            return
+        self.jobs.append((future, lambda _result: None, self._journal_error))
+
+    def _journal_error(self, error):
+        self.journal_button.setToolTip(f"Protokoll nicht gespeichert: {error}")
+
+    def _journal_state(self, state: dict):
+        status = state["status"]
+        index = state["index"]
+        active = status in ("starting", "playing", "paused", "blackout")
+        if active and not self.show_run_id:
+            self.show_run_id = str(uuid4())
+            self._record_event(
+                "start",
+                f"Vorstellung gestartet: {self.project.get('title', 'Filmabend')}",
+            )
+            if self.player.items and 0 <= index < len(self.player.items):
+                self._record_event(
+                    "cue",
+                    f"Clip {index + 1}: {self.player.items[index].get('name', 'Ohne Titel')}",
+                )
+        elif (
+            active
+            and index != self.journal_last_index
+            and 0 <= index < len(self.player.items)
+        ):
+            self._record_event(
+                "cue",
+                f"Clip {index + 1}: {self.player.items[index].get('name', 'Ohne Titel')}",
+            )
+        if self.show_run_id:
+            if status == "idle" and self.journal_last_status in (
+                "starting",
+                "playing",
+                "paused",
+                "blackout",
+            ):
+                run_id = self.show_run_id
+                QTimer.singleShot(0, lambda: self._journal_idle_if_current(run_id))
+            elif status == "error" and state.get("message"):
+                self._record_event("error", f"Playerfehler: {state['message']}")
+                self.show_run_id = ""
+            elif status == "finished":
+                self._record_event("end", "Vorstellung beendet.")
+                self.show_run_id = ""
+            elif status != self.journal_last_status and status in (
+                "playing",
+                "paused",
+                "blackout",
+            ):
+                self._record_event(
+                    "state",
+                    {
+                        "playing": "Wiedergabe läuft.",
+                        "paused": "Wiedergabe pausiert.",
+                        "blackout": "Schwarzbild aktiviert.",
+                    }[status],
+                )
+        self.journal_last_status = status
+        self.journal_last_index = index
+
+    def _journal_idle_if_current(self, run_id: str):
+        if self.show_run_id == run_id and self.player.state["status"] == "idle":
+            self._record_event("end", "Vorstellung gestoppt.")
+            self.show_run_id = ""
+
+    def _open_journal(self):
+        if self.journal_dialog is None:
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Vorführprotokoll · Lichtspiel")
+            dialog.resize(720, 520)
+            layout = QVBoxLayout(dialog)
+            layout.addWidget(label("VORFÜHRPROTOKOLL · LOKAL", "eyebrow"))
+            layout.addWidget(
+                label("Letzte Ereignisse ohne Dateipfade und Zugangsdaten.", "hint")
+            )
+            self.journal_text = QPlainTextEdit()
+            self.journal_text.setReadOnly(True)
+            layout.addWidget(self.journal_text, 1)
+            self.journal_dialog = dialog
+        self.journal_text.setPlainText("Protokoll wird geladen …")
+        self.journal_dialog.show()
+        self.journal_dialog.raise_()
+        future = self.recovery_executor.submit(read_events, self.journal_path)
+        self.jobs.append(
+            (
+                future,
+                lambda entries: self.journal_text.setPlainText(format_events(entries)),
+                lambda error: self.journal_text.setPlainText(
+                    f"Protokoll konnte nicht gelesen werden: {error}"
+                ),
+            )
+        )
+
     def _player_state(self, state: dict):
         status = state["status"]
         active = status in ("starting", "playing", "paused", "blackout")
@@ -2258,9 +2376,13 @@ class MainWindow(QMainWindow):
         self._control(self.player.blackout)
 
     def _next(self):
+        if self.player.active():
+            self._record_event("control", "Nächster Clip manuell angefordert.")
         self._control(self.player.next)
 
     def _stop(self):
+        if self.player.active():
+            self._record_event("control", "Stopp manuell ausgelöst.")
         self.player.stop()
         self.status.setText("Vorstellung gestoppt.")
 
@@ -2279,6 +2401,12 @@ class MainWindow(QMainWindow):
         self.preserve_recovery_on_close = (
             self.player.active() or self.recovery is not None
         )
+        if self.player.active():
+            self._record_event(
+                "end",
+                "App während der Vorstellung geschlossen; Wiederaufnahme möglich.",
+            )
+            self.show_run_id = ""
         self.player.stop()
         self.preview_timer.stop()
         self.wake_guard.close()

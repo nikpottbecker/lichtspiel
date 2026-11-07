@@ -32,6 +32,8 @@ QPushButton#danger { color: #f3f3f3; border-color: #797979; }
 QPushButton#danger:hover { background: #3d3d3d; }
 QPushButton#previewExpand { min-height: 16px; padding: 0; border: none; background: transparent; color: #eeeeee; font-size: 16px; }
 QPushButton#previewExpand:hover { color: #ffffff; background: #393939; }
+QPushButton#journalLink { background: transparent; border: 1px solid #444444; color: #c8c8c8; padding: 3px 9px; min-height: 16px; font-size: 11px; }
+QPushButton#journalLink:hover { background: #292929; color: #ffffff; }
 QPushButton#nav { background: transparent; border: 1px solid transparent; border-radius: 19px; text-align: center; padding: 8px 14px; color: #bcbcbc; font-size: 11px; font-weight: 750; letter-spacing: 1px; }
 QPushButton#nav:hover { background: #303030; color: #ffffff; }
 QPushButton#nav:checked { background: #eeeeee; color: #111111; border: 1px solid #ffffff; border-radius: 18px; }
@@ -45,6 +47,7 @@ QListWidget { background: #191919; border: 1px solid #3d3d3d; border-radius: 10p
 QListWidget::item { padding: 11px 10px; border-bottom: 1px solid #303030; }
 QListWidget::item:hover { background: #292929; }
 QListWidget::item:selected { background: #4a4a4a; color: #ffffff; border-radius: 5px; }
+QPlainTextEdit { background: #171717; border: 1px solid #454545; border-radius: 9px; padding: 12px; color: #e8e8e8; font-family: "SF Mono", "Consolas", "DejaVu Sans Mono"; font-size: 12px; }
 QFrame#rule { background: #353535; border: none; max-height: 1px; }
 QFrame#liveCard { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #262626, stop:1 #1c1c1c); border: 1px solid #5b5b5b; border-radius: 14px; }
 QFrame#stageCard, QFrame#recoveryCard { background: rgba(30, 30, 30, 238); border: 1px solid #525252; border-radius: 14px; }

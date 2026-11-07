@@ -32,7 +32,8 @@ Prüfe die Änderung mit passenden Logik-, UI- und Pakettests; sieh neue Oberfl�
 - [x] Geführte native Ersteinrichtung mit Beamer-Sichtprüfung und Dateiprüfung vor dem Abschluss.
 - [ ] Qt-Version auf realer macOS-/Windows-Hardware mit Beamer, Ton und Home Assistant abnehmen und erst dann als Standard festlegen.
 - [x] Gemeinsames Designsystem ohne überlagerte Altregeln; alle vier Hauptansichten visuell geprüft.
-- [ ] Vorführprotokoll für Start, Eingriffe, Clipwechsel und Fehler sowie weitere Wiederherstellungsfälle.
+- [x] Lokales Vorführprotokoll für Start, Eingriffe, Clipwechsel, Ende und Playerfehler.
+- [ ] Weitere Wiederherstellungsfälle und Vorführprotokoll an echter Hardware prüfen.
 - [ ] Mehrere gespeicherte Vorstellungen und wiederverwendbare Vorlagen.
 - [ ] Praktische Testmatrix für macOS, Windows, Beamer, Ton und Home Assistant.
 - [ ] Signierte, dokumentierte Installationspakete.

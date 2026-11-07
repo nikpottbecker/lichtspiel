@@ -28,6 +28,7 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 | Leinwandvorschau                                          | Regelmäßig aktualisiertes Kontrollbild direkt aus mpv; vergrößerbar, ohne zweiten Videodecoder                                                                                     |
 | Player-Überwachung                                        | Eine ausbleibende IPC-Antwort wird nach 12 Sekunden als Fehler gemeldet                                                                                                            |
 | Wiederaufnahme                                            | Letzter Clip und ungefähre Position werden lokal gespeichert; Fortsetzen erfordert einen Klick und erneute Startprüfung                                                            |
+| Vorführprotokoll                                          | Start, Clipwechsel, Pause, Schwarzbild, manuelle Eingriffe, Ende und Playerfehler lokal nachlesbar, ohne Medienpfade oder Zugangsdaten                                             |
 | Bild & Ton                                                | Bildschirmauswahl, Tongerät, mpv-Erkennung und native mpv-Testkarte                                                                                                                |
 | Erste Einrichtung                                         | Vier geführte Schritte für Player, Ausgabe, Sichtprüfung und Medien; Abschluss erst nach Dateiprüfung                                                                              |
 | Startprüfung und Startplanung                             | Dateiprüfung im Hintergrund; einmaliger Start bei offener App                                                                                                                      |
@@ -38,6 +39,10 @@ Die App erkennt mpv auf dem Suchpfad und an üblichen Installationsorten; andern
 Der Bildschirm wird für die Qt-Version als `nativeDisplayId` in `settings.json` gespeichert. Dadurch überschreibt sie die Electron-Bildschirmauswahl im gemeinsamen Projekt nicht. Öffne **nicht beide Apps gleichzeitig** mit demselben Projekt. Home-Assistant-Regeln können aus der bisherigen Konfiguration übernommen werden; das verschlüsselte Electron-Token ist nicht übertragbar. Gib es einmal in der Qt-App neu ein und aktiviere die Automatik dort ausdrücklich.
 
 Bei einer Unterbrechung merkt sich die Qt-App den Ablauf, den aktuellen Clip und etwa alle fünf Sekunden die Position in `show-recovery.json` im lokalen Konfigurationsverzeichnis. Nach einem Neustart bleibt die Leinwand aus. **An gespeicherter Stelle fortsetzen** prüft Dateien, Ablauf und gewählte Ausgabe erneut; ein veränderter Ablauf kann nicht versehentlich an einer anderen Stelle gestartet werden. **Verwerfen** erlaubt einen neuen Start. Ein regulärer Stopp oder das Ende der Vorstellung entfernt den Punkt. Beim bestätigten Schließen während der Wiedergabe bleibt er erhalten. Die Position kann nach einem Absturz um bis zu ungefähr fünf Sekunden zurückliegen; das ist kein vollständiges Vorführprotokoll.
+
+Über **Protokoll** am unteren Fensterrand lassen sich die letzten Vorführereignisse auch während der Wiedergabe öffnen. Das lokale `show-journal.jsonl` enthält Zeitpunkt, Vorstellungskennung und Ereignistext für Start, Clipwechsel, Pause, Schwarzbild, manuellen nächsten Clip, Stopp, Ende und Playerfehler. Dateipfade und Home-Assistant-Zugangsdaten werden nicht geschrieben. Das Protokoll dient der Fehlersuche; es misst weder tatsächliches Bild und Ton am Beamer noch die Lampenreaktion.
+
+![Lokales Vorführprotokoll mit simulierten Ereignissen](../docs/assets/native-show-journal.png)
 
 ![Wiederaufnahme in der Qt-Regie bei kleinem Fenster](../docs/assets/native-recovery.png)
 
